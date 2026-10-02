@@ -1,0 +1,61 @@
+{
+  "meta": {
+    "titre": "Propriétés thermophysiques des fluides caloporteurs",
+    "source": "Incropera & DeWitt, Fundamentals of Heat and Mass Transfer, Annexe A : tables A.4 (gaz à pression atmosphérique, dont l'air et la vapeur d'eau) et A.6 (eau saturée). Valeurs arrondies. TODO: source à vérifier (édition, numéro de table, valeurs).",
+    "date": "2026-10-02",
+    "note": "Unités : T selon T_unite, cp en J/(kg·K), rho en kg/m³. Eau : liquide saturé, la masse volumique et cp au-delà de 100 °C supposent le liquide maintenu sous pression. Gaz : cp à pression atmosphérique, masse volumique calculée par gaz parfait avec R_specifique. Pour corriger une valeur, éditer le point concerné."
+  },
+  "fluides": {
+    "eau": {
+      "label": "Eau (liquide)",
+      "phase": "liquide",
+      "T_unite": "C",
+      "R_specifique": null,
+      "points": [
+        { "T": 0, "cp": 4217, "rho": 999.8 },
+        { "T": 10, "cp": 4192, "rho": 999.7 },
+        { "T": 20, "cp": 4182, "rho": 998.2 },
+        { "T": 30, "cp": 4178, "rho": 995.6 },
+        { "T": 40, "cp": 4179, "rho": 992.2 },
+        { "T": 50, "cp": 4181, "rho": 988.0 },
+        { "T": 60, "cp": 4185, "rho": 983.2 },
+        { "T": 70, "cp": 4190, "rho": 977.8 },
+        { "T": 80, "cp": 4197, "rho": 971.8 },
+        { "T": 90, "cp": 4205, "rho": 965.3 },
+        { "T": 100, "cp": 4216, "rho": 958.4 },
+        { "T": 120, "cp": 4245, "rho": 943.1 },
+        { "T": 140, "cp": 4285, "rho": 926.1 },
+        { "T": 150, "cp": 4310, "rho": 917.0 }
+      ]
+    },
+    "air": {
+      "label": "Air",
+      "phase": "gaz",
+      "T_unite": "K",
+      "R_specifique": 287.05,
+      "points": [
+        { "T": 250, "cp": 1006 },
+        { "T": 300, "cp": 1007 },
+        { "T": 350, "cp": 1009 },
+        { "T": 400, "cp": 1014 },
+        { "T": 450, "cp": 1021 },
+        { "T": 500, "cp": 1030 },
+        { "T": 600, "cp": 1051 }
+      ]
+    },
+    "vapeur": {
+      "label": "Vapeur d'eau (surchauffée)",
+      "phase": "gaz",
+      "T_unite": "K",
+      "R_specifique": 461.52,
+      "points": [
+        { "T": 380, "cp": 2060 },
+        { "T": 400, "cp": 2014 },
+        { "T": 450, "cp": 1980 },
+        { "T": 500, "cp": 1985 },
+        { "T": 550, "cp": 1997 },
+        { "T": 600, "cp": 2026 }
+      ]
+    }
+  }
+}
