@@ -6,7 +6,8 @@ export type Dimension =
   | 'massFlow' | 'volFlow' | 'density' | 'specificHeat'
   | 'pressure' | 'length' | 'area' | 'velocity' | 'time'
   | 'ratio' | 'heatTransfer' | 'conductivity' | 'cost'
-  | 'specificEnergy' | 'specificEntropy' | 'specificVolume';
+  | 'specificEnergy' | 'specificEntropy' | 'specificVolume'
+  | 'mass' | 'volume' | 'count' | 'concentration' | 'energyPrice' | 'massPrice' | 'volumePrice' | 'emissionFactor';
 
 export type UnitDef = { factor: number; offset?: number };
 type DimDef = { si: string; display: string; units: Record<string, UnitDef> };
@@ -52,6 +53,17 @@ export const DIMENSIONS: Record<Dimension, DimDef> = {
   specificEnergy: { si: 'J/kg', display: 'kJ/kg', units: { 'J/kg': { factor: 1 }, 'kJ/kg': { factor: 1e3 }, 'MJ/kg': { factor: 1e6 }, 'kWh/t': { factor: 3600 } } },
   specificEntropy: { si: 'J/(kg·K)', display: 'kJ/(kg·K)', units: { 'J/(kg·K)': { factor: 1 }, 'kJ/(kg·K)': { factor: 1e3 } } },
   specificVolume: { si: 'm³/kg', display: 'm³/kg', units: { 'm³/kg': { factor: 1 }, 'L/kg': { factor: 1e-3 } } },
+  count: { si: 'u', display: 'u', units: { u: { factor: 1 } } },
+  mass: { si: 'kg', display: 'kg', units: { kg: { factor: 1 }, t: { factor: 1e3 } } },
+  volume: { si: 'm³', display: 'm³', units: { 'm³': { factor: 1 }, L: { factor: 1e-3 } } },
+  // Concentration massique en sels dissous ; 1 ppm = 1 mg/kg (≈ 1 mg/L pour de l'eau).
+  concentration: { si: 'kg/kg', display: 'ppm', units: { ppm: { factor: 1e-6 } } },
+  // Prix de l'énergie : SI = €/J.
+  energyPrice: { si: '€/J', display: '€/MWh', units: { '€/MWh': { factor: 1 / 3.6e9 }, '€/kWh': { factor: 1 / 3.6e6 } } },
+  massPrice: { si: '€/kg', display: '€/t', units: { '€/t': { factor: 1e-3 }, '€/kg': { factor: 1 } } },
+  volumePrice: { si: '€/m³', display: '€/m³', units: { '€/m³': { factor: 1 } } },
+  // Facteur d'émission rapporté à l'énergie : SI = kg CO2 / J.
+  emissionFactor: { si: 'kgCO2/J', display: 'kgCO2/kWh', units: { 'kgCO2/kWh': { factor: 1 / 3.6e6 }, 'gCO2/kWh': { factor: 1e-3 / 3.6e6 } } },
   cost: { si: '€', display: '€', units: { '€': { factor: 1 }, 'k€': { factor: 1e3 } } },
 };
 

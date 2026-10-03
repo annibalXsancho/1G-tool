@@ -67,18 +67,36 @@ export default function ResultPanel({ result }: { result: ResultOk<unknown> }) {
   return (
     <div className="space-y-4" aria-live="polite">
       <WarningList warnings={result.warnings} />
-      {result.main.map((q) => {
-        const u = unitOf(q);
+      {result.main.length > 0 && (() => {
+        const [first, ...rest] = result.main;
+        const u = unitOf(first);
         return (
-          <div key={q.key} className="border-y-2 border-accent py-3">
-            <div className="eyebrow !text-accent">{q.label}</div>
+          <div className="border-y-2 border-accent py-3">
+            <div className="eyebrow !text-accent">{first.label}</div>
             <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
-              <span className="num text-[44px] font-medium leading-none tracking-tight sm:text-[56px]" data-testid={`main-${q.key}`}>{fmtNum(fromSI(q.value, q.dimension, u))}</span>
-              <span className="text-[20px]"><UnitSelect q={q} unit={u} onPick={(x) => set(q.key, x)} /></span>
+              <span className="num text-[44px] font-medium leading-none tracking-tight sm:text-[56px]" data-testid={`main-${first.key}`}>{fmtNum(fromSI(first.value, first.dimension, u))}</span>
+              <span className="text-[20px]"><UnitSelect q={first} unit={u} onPick={(x) => set(first.key, x)} /></span>
             </div>
+            {rest.length > 0 && (
+              <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-2 sm:grid-cols-3">
+                {rest.map((q) => {
+                  const uq = unitOf(q);
+                  return (
+                    <div key={q.key}>
+                      <div className="text-[12px] text-ink-2">{q.label}</div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="num text-[22px] font-medium leading-tight" data-testid={`main-${q.key}`}>{fmtNum(fromSI(q.value, q.dimension, uq))}</span>
+                        <span className="text-[13px]"><UnitSelect q={q} unit={uq} onPick={(x) => set(q.key, x)} /></span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
-      })}
+      })()}
+      {result.conclusion && <p className="border-l-4 border-accent bg-accent-soft px-3 py-2 text-[13px]">{result.conclusion}</p>}
       {result.intermediates.length > 0 && (
         <section>
           <h3 className="eyebrow mb-1">Grandeurs intermédiaires</h3>

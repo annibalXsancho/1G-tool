@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { FluidesFile } from './schema';
+import type { CombustiblesFile, FluidesFile } from './schema';
 
 const files = import.meta.glob('./*.json', { eager: true, import: 'default' }) as Record<string, { meta?: unknown }>;
 
@@ -27,6 +27,24 @@ describe('fichiers JSON de src/data', () => {
         if (i > 0) expect(p.T).toBeGreaterThan(fl.points[i - 1].T);
         if (fl.R_specifique === null) expect(p.rho, `${id} rho`).toBeGreaterThan(0);
       });
+    }
+  });
+
+  it('combustibles.json : forme et ordres de grandeur', async () => {
+    const f = (await import('./combustibles.json')).default as unknown as CombustiblesFile;
+    expect(Object.keys(f.combustibles).length).toBeGreaterThan(0);
+    for (const [id, c] of Object.entries(f.combustibles)) {
+      expect(typeof c.label, id).toBe('string');
+      expect(c.ratio_PCI_PCS, id).toBeGreaterThan(0.8);
+      expect(c.ratio_PCI_PCS, id).toBeLessThanOrEqual(1);
+      expect(c.co2_kg_par_TJ_PCI, id).toBeGreaterThan(40000);
+      expect(c.co2_kg_par_TJ_PCI, id).toBeLessThan(120000);
+      if (c.siegert !== null) {
+        expect(c.siegert.A2, id).toBeGreaterThan(0.3);
+        expect(c.siegert.A2, id).toBeLessThan(1);
+        expect(c.siegert.B, id).toBeGreaterThan(0);
+        expect(c.siegert.B, id).toBeLessThan(0.05);
+      }
     }
   });
 });

@@ -13,7 +13,7 @@ import { describeInputs } from '@/lib/describe';
 import { recordHistory, useFavorites } from '@/lib/storage';
 import FieldRenderer from './FieldRenderer';
 import ResultPanel, { CalcError, InputErrors, WarningList } from './ResultPanel';
-import FormulaBlock from './FormulaBlock';
+import Justification from './Justification';
 import PrintSheet from './PrintSheet';
 import { IconLink, IconPrint, IconStar } from './icons';
 
@@ -96,49 +96,20 @@ function Inner({ calc }: { calc: AnyCalculator }) {
 
         <div className="grid items-start border bg-surface lg:grid-cols-[minmax(320px,400px)_1fr]">
           <section aria-label="Saisie" className="space-y-4 border-b p-4 lg:border-b-0 lg:border-r">
-            <h2 className="eyebrow">Saisie</h2>
+            <h2 className="flex items-baseline gap-2"><span className="num text-[13px] font-semibold text-accent">1</span><span className="eyebrow">Saisissez</span></h2>
             {calc.inputs.filter((f) => isVisible(f, raw)).map((f) => (
               <FieldRenderer key={f.key} field={f} raw={raw} error={errByKey[f.key]} onChange={(r) => { touched.current = true; setRaw(r); }} />
             ))}
           </section>
           <section aria-label="Résultat" className="min-w-0 p-4">
-            <h2 className="eyebrow mb-3">Résultat</h2>
+            <h2 className="mb-3 flex items-baseline gap-2"><span className="num text-[13px] font-semibold text-accent">2</span><span className="eyebrow">Résultat</span></h2>
             {outcome.kind === 'input-errors' && <InputErrors errors={outcome.errors} />}
             {outcome.kind === 'calc-error' && <CalcError errors={outcome.errors} />}
             {outcome.kind === 'ok' && <ResultPanel result={outcome.result} />}
           </section>
         </div>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          {result && (
-            <section className="border bg-surface p-4 lg:col-span-2">
-              <h2 className="eyebrow mb-2">Formules et application numérique</h2>
-              <div className="grid gap-x-8 md:grid-cols-2">
-                {result.formulas.map((f, i) => (
-                  <div key={i} className="border-t py-2">
-                    <p className="text-[12px] text-ink-3">{f.label}</p>
-                    <FormulaBlock latex={f.symbolic} />
-                    <FormulaBlock latex={f.substituted} />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-          <section className="border bg-surface p-4">
-            <h2 className="eyebrow mb-2">Hypothèses</h2>
-            <ul className="list-disc space-y-1 pl-4 text-[13px] text-ink-2">{calc.assumptions.map((a, i) => <li key={i}>{a}</li>)}</ul>
-          </section>
-          <section className="border bg-surface p-4">
-            <h2 className="eyebrow mb-2">Domaine de validité</h2>
-            <ul className="list-disc space-y-1 pl-4 text-[13px] text-ink-2">{calc.validity.map((a, i) => <li key={i}>{a}</li>)}</ul>
-            <h2 className="eyebrow mb-2 mt-4">Références</h2>
-            <ul className="space-y-1 text-[13px] text-ink-2">
-              {calc.references.map((r, i) => (
-                <li key={i}>{r.source}{r.section ? <span className="text-ink-3"> · {r.section}</span> : null}{r.note ? <span className="text-warn"> · {r.note}</span> : null}</li>
-              ))}
-            </ul>
-          </section>
-        </div>
+        <Justification calc={calc} result={result} />
         <p className="mt-4 text-[12px] text-ink-3">Aide au dimensionnement : le résultat relève de la responsabilité de l’ingénieur.</p>
       </div>
       <PrintSheet calc={calc} lines={lines} result={result} date={date} />

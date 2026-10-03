@@ -5,5 +5,6 @@ import { useMemo } from 'react';
 
 export default function FormulaBlock({ latex, display = true }: { latex: string; display?: boolean }) {
   const html = useMemo(() => katex.renderToString(latex, { displayMode: display, throwOnError: false, output: 'html' }), [latex, display]);
-  return <div className="overflow-x-auto" dangerouslySetInnerHTML={{ __html: html }} />;
+  if (!display) return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div className="overflow-x-auto overflow-y-hidden" dangerouslySetInnerHTML={{ __html: html }} />;
 }

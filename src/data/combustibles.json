@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "titre": "Combustibles : rapport PCI/PCS, facteur d'émission CO2, coefficients de Siegert",
+    "source": "CO2 : GIEC (IPCC) 2006 Guidelines for National Greenhouse Gas Inventories, vol. 2 (Energy), chap. 2 (Stationary Combustion), tableau 2.2, facteurs par défaut en kg CO2/TJ sur PCI (combustion seule, hors amont). Siegert : 1. BImSchV (règlement allemand sur les petites installations de combustion), annexe relative à la mesure des pertes par les fumées. TODO: source à vérifier (annexe et version exactes de la 1. BImSchV). Rapports PCI/PCS : ordres de grandeur usuels. TODO: source à vérifier.",
+    "date": "2026-10-03",
+    "note": "co2_kg_par_TJ_PCI : tel que publié par le GIEC (kg/TJ). ratio_PCI_PCS = PCI / PCS (sans unité). siegert : perte par chaleur sensible des fumées q (%) = (T_fumées − T_air) × (A2 / (21 − O2) + B), O2 en % sur fumées sèches ; null si la formule n'est pas définie pour ce combustible."
+  },
+  "combustibles": {
+    "gaz-naturel": {
+      "label": "Gaz naturel",
+      "ratio_PCI_PCS": 0.901,
+      "co2_kg_par_TJ_PCI": 56100,
+      "siegert": { "A2": 0.66, "B": 0.009 }
+    },
+    "fioul-domestique": {
+      "label": "Fioul domestique",
+      "ratio_PCI_PCS": 0.935,
+      "co2_kg_par_TJ_PCI": 74100,
+      "siegert": { "A2": 0.68, "B": 0.007 }
+    },
+    "fioul-lourd": {
+      "label": "Fioul lourd",
+      "ratio_PCI_PCS": 0.94,
+      "co2_kg_par_TJ_PCI": 77400,
+      "siegert": null
+    },
+    "propane": {
+      "label": "Propane / GPL",
+      "ratio_PCI_PCS": 0.92,
+      "co2_kg_par_TJ_PCI": 63100,
+      "siegert": { "A2": 0.63, "B": 0.008 }
+    }
+  }
+}

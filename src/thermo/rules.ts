@@ -140,3 +140,28 @@ export function turbineExpansion(input: { state1: SteamState; p2: number; etaIs:
   const w = etaIs * (state1.h - h2s);
   return { w, h2s, state2: statePH(p2, state1.h - w) };
 }
+
+// ───────────────────────── Fuite de vapeur par un orifice (Napier) ─────────────────────────
+
+/**
+ * Formule empirique de Napier, débit critique de vapeur saturée sèche par un orifice :
+ *   W [lb/s] = P [psia] · A [in²] / 70.
+ * Conversion en SI (1 lb = 0,45359237 kg ; 1 psi = 6894,757 Pa ; 1 in² = 6,4516·10⁻⁴ m²) :
+ *   ṁ [kg/s] = C_N · p [Pa] · A [m²], C_N = 0,45359237 / (6894,757 × 6,4516·10⁻⁴ × 70) ≈ 1,4568·10⁻³ s/m.
+ */
+export const NAPIER_SI = 0.45359237 / (6894.757293168 * 6.4516e-4 * 70);
+
+/**
+ * Rapport critique p_aval/p_amont sous lequel l'écoulement est bloqué (sonique) :
+ *   (2/(k+1))^(k/(k−1)), avec k = 1,135 couramment retenu pour la vapeur saturée sèche (≈ 0,577).
+ */
+export const STEAM_CRITICAL_RATIO = (2 / (1.135 + 1)) ** (1.135 / (1.135 - 1));
+
+export function napierLeak(input: { pUp: number; pDown: number; d: number; cd: number }): { m: number; area: number; choked: boolean } {
+  const { pUp, pDown, d, cd } = input;
+  need(pos(pUp) && Number.isFinite(pDown) && pDown >= 0 && pDown < pUp, 'Il faut 0 ≤ pression aval < pression amont.');
+  need(Number.isFinite(d) && d >= 0, 'Diamètre invalide.');
+  need(cd > 0 && cd <= 1, 'Coefficient de décharge dans ]0 ; 1].');
+  const area = (Math.PI * d * d) / 4;
+  return { m: cd * NAPIER_SI * pUp * area, area, choked: pDown / pUp <= STEAM_CRITICAL_RATIO };
+}

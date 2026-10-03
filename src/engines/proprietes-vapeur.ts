@@ -1,5 +1,5 @@
 import { defineCalculator, type Formula, type Quantity, type Warning } from '@/core/types';
-import { tex } from '@/core/fmt';
+import { fmtNum, tex } from '@/core/fmt';
 import { saturationP, statePH, statePT, statePx, STEAM_DOMAIN, SteamDomainError, type Saturation, type SteamState } from '@/thermo/steam';
 
 export type ProprietesVapeurInput = {
@@ -22,7 +22,7 @@ const PHASE: Record<SteamState['phase'], string> = {
 export const proprietesVapeur = defineCalculator<ProprietesVapeurInput, ProprietesVapeurOutput>({
   id: 'proprietes-vapeur',
   title: 'Propriétés de l’eau et de la vapeur',
-  category: 'utilites',
+  category: 'vapeur',
   summary: 'Enthalpie, entropie, volume massique et état de l’eau ou de la vapeur à partir de deux grandeurs (IAPWS-IF97).',
   inputs: [
     {
@@ -62,6 +62,13 @@ export const proprietesVapeur = defineCalculator<ProprietesVapeurInput, Propriet
     const formulas: Formula[] = [{
       label: 'Propriétés calculées par IAPWS-IF97',
       symbolic: '(h,\\ s,\\ v) = f_{\\mathrm{IF97}}(p,\\ T)',
+      legend: [
+        { symbol: 'h', meaning: 'enthalpie massique', unit: 'kJ/kg' },
+        { symbol: 's', meaning: 'entropie massique', unit: 'kJ/(kg·K)' },
+        { symbol: 'v', meaning: 'volume massique', unit: 'm³/kg' },
+        { symbol: 'p', meaning: 'pression absolue', unit: 'bar' },
+      ],
+      note: 'Les équations d’IF97 sont des développements polynomiaux de l’énergie libre de Gibbs, propres à chaque région ; elles ne se résument pas à une formule unique.',
       substituted:
         `h = ${kJ(st.h)}\\ \\mathrm{kJ/kg},\\quad s = ${kJ(st.s)}\\ \\mathrm{kJ/(kg\\cdot K)},\\quad v = ${tex(st.v)}\\ \\mathrm{m^3/kg}\\quad (p = ${pBar}\\ \\mathrm{bar},\\ T = ${tex(st.T - 273.15)}\\ °\\mathrm{C})`,
     }];
@@ -69,6 +76,11 @@ export const proprietesVapeur = defineCalculator<ProprietesVapeurInput, Propriet
       formulas.push({
         label: 'Vapeur humide',
         symbolic: 'h = h_f + x\\, h_{fg}',
+        legend: [
+          { symbol: 'h_f', meaning: 'enthalpie du liquide saturé', unit: 'kJ/kg' },
+          { symbol: 'h_{fg}', meaning: 'chaleur latente de vaporisation', unit: 'kJ/kg' },
+          { symbol: 'x', meaning: 'titre en vapeur (part massique de vapeur)' },
+        ],
         substituted: `h = ${kJ(sat.hf)} + ${tex(st.x)} \\times ${kJ(sat.hfg)} = ${kJ(st.h)}\\ \\mathrm{kJ/kg}`,
       });
     }
@@ -76,6 +88,7 @@ export const proprietesVapeur = defineCalculator<ProprietesVapeurInput, Propriet
       formulas.push({
         label: st.phase === 'liquide' ? 'Sous-refroidissement' : 'Surchauffe',
         symbolic: '\\Delta T = T - T_{sat}(p)',
+        legend: [{ symbol: 'T_{sat}(p)', meaning: 'température de saturation à la pression p', unit: 'K' }],
         substituted: `\\Delta T = ${tex(st.T)} - ${tex(sat.T)} = ${tex(st.dTsat)}\\ \\mathrm{K}`,
       });
     }
@@ -95,7 +108,9 @@ export const proprietesVapeur = defineCalculator<ProprietesVapeurInput, Propriet
       { key: 'hg', label: 'Enthalpie vapeur saturée h_g', value: sat.hg, dimension: 'specificEnergy' },
       { key: 'hfg', label: 'Chaleur latente h_fg', value: sat.hfg, dimension: 'specificEnergy' },
     ];
-    return { ok: true, main, intermediates, warnings, formulas, data: { state: st, sat } };
+    const conclusion = `${PHASE[st.phase]} à ${fmtNum((i.p - 101325) / 1e5, 3)} bar(g) : h = ${fmtNum(st.h / 1e3)} kJ/kg, `
+      + (st.phase === 'vapeur-humide' ? `titre ${fmtNum(st.x! * 100, 3)} %.` : st.phase === 'vapeur-surchauffee' ? `surchauffe de ${fmtNum(st.dTsat, 3)} K au-dessus de ${fmtNum(sat.T - 273.15)} °C.` : st.phase === 'liquide' ? `${fmtNum(-st.dTsat, 3)} K sous la saturation.` : `à ${fmtNum(sat.T - 273.15)} °C.`);
+    return { ok: true, main, intermediates, warnings, formulas, conclusion, data: { state: st, sat } };
   },
   references: [
     { source: 'IAPWS, Revised Release on the IAPWS Industrial Formulation 1997 for the Thermodynamic Properties of Water and Steam (IAPWS-IF97)', section: 'régions 1, 2 et 4', note: 'TODO: source à vérifier (année de la révision citée)' },
@@ -106,6 +121,13 @@ export const proprietesVapeur = defineCalculator<ProprietesVapeurInput, Propriet
     'Enthalpie et entropie rapportées à l’origine d’IAPWS-IF97 (liquide saturé au point triple) : seules leurs différences ont un sens physique.',
     'À la saturation, l’état (p, T) est ambigu : utiliser le titre.',
   ],
+  method: [
+    'L’état de l’eau est entièrement déterminé par deux grandeurs indépendantes : pression et température hors saturation, ou pression et titre (ou enthalpie) dans le mélange liquide-vapeur.',
+    'L’outil compare d’abord la température à la température de saturation à la pression donnée : en dessous, l’eau est liquide (sous-refroidie) ; au-dessus, c’est de la vapeur surchauffée ; à l’égalité, c’est un mélange dont le titre fixe la répartition.',
+    'Les propriétés sont ensuite calculées par la formulation industrielle IAPWS-IF97, référence internationale des tables vapeur, pour la région correspondante.',
+  ],
+  scope: 'Pas de propriétés de transport (viscosité, conductivité) ni d’état supercritique. Pour les applications (flash, purge, purgeur, coût), utiliser les outils dédiés.',
+  related: ['vapeur-flash', 'cout-vapeur', 'purgeur-defaillant'],
   validity: [
     `Pression de ${Math.round(STEAM_DOMAIN.pMin)} Pa à ${STEAM_DOMAIN.pMax / 1e6} MPa ; température de 0 à 800 °C (régions 1, 2 et 4 d’IF97).`,
     'Hors de ce domaine (région 3 et supercritique, région 5), le calcul est refusé et non extrapolé.',

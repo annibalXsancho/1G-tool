@@ -4,6 +4,8 @@ import type { AnyCalculator, Quantity, ResultOk } from '@/core/types';
 import type { InputLine } from '@/lib/describe';
 import FormulaBlock from './FormulaBlock';
 
+const FormulaInline = ({ latex }: { latex: string }) => <span className="inline-block"><FormulaBlock latex={latex} display={false} /></span>;
+
 const qty = (q: Quantity) => {
   const u = q.unit ?? DIMENSIONS[q.dimension].display;
   return `${fmtNum(fromSI(q.value, q.dimension, u), 5)} ${u}`;
@@ -19,6 +21,13 @@ export default function PrintSheet({ calc, lines, result, date }: { calc: AnyCal
         <h1 className="text-[18pt] font-semibold">{calc.title}</h1>
         <p className="text-[9pt]">Établie le {date}</p>
       </header>
+
+      {calc.method && calc.method.length > 0 && (
+        <>
+          <h2 className={h2}>Principe du calcul</h2>
+          {calc.method.map((m, i) => <p key={i} className="mb-1">{m}</p>)}
+        </>
+      )}
 
       <h2 className={h2}>Paramètres saisis</h2>
       <table className="w-full border-collapse">
@@ -44,13 +53,20 @@ export default function PrintSheet({ calc, lines, result, date }: { calc: AnyCal
           <h2 className={h2}>Formules et application numérique</h2>
           {result.formulas.map((f, i) => (
             <div key={i} className="break-inside-avoid">
-              <p className="mt-1 text-[9pt] italic">{f.label}</p>
+              <p className="mt-2 text-[9pt] font-semibold">{i + 1}. {f.label}</p>
               <FormulaBlock latex={f.symbolic} />
               <FormulaBlock latex={f.substituted} />
+              {f.legend && f.legend.length > 0 && (
+                <p className="text-[8.5pt]">avec {f.legend.map((l, j) => (
+                  <span key={j}>{j > 0 ? ' ; ' : ''}<FormulaInline latex={l.symbol} /> : {l.meaning}{l.unit ? ` [${l.unit}]` : ''}</span>
+                ))}</p>
+              )}
+              {f.note && <p className="text-[8.5pt] italic">{f.note}</p>}
             </div>
           ))}
           <h2 className={h2}>Résultat</h2>
           {result.main.map((q) => <p key={q.key} className="text-[14pt] font-semibold">{q.label} : {qty(q)}</p>)}
+          {result.conclusion && <p className="mt-1 border-l-4 border-black pl-2">{result.conclusion}</p>}
           <h2 className={h2}>Grandeurs intermédiaires</h2>
           <table className="w-full border-collapse">
             <tbody>{result.intermediates.map((q) => <tr key={q.key} className="border-b border-neutral-400"><th className="py-0.5 text-left font-normal">{q.label}</th><td className="py-0.5 text-right">{qty(q)}</td></tr>)}</tbody>
@@ -68,6 +84,12 @@ export default function PrintSheet({ calc, lines, result, date }: { calc: AnyCal
       <ul className="list-disc pl-5">{calc.assumptions.map((a, i) => <li key={i}>{a}</li>)}</ul>
       <h2 className={h2}>Domaine de validité</h2>
       <ul className="list-disc pl-5">{calc.validity.map((a, i) => <li key={i}>{a}</li>)}</ul>
+      {calc.scope && (
+        <>
+          <h2 className={h2}>Limites de ce calcul</h2>
+          <p>{calc.scope}</p>
+        </>
+      )}
       <h2 className={h2}>Références</h2>
       <ul className="list-disc pl-5">{calc.references.map((r, i) => <li key={i}>{r.source}{r.section ? `, ${r.section}` : ''}{r.note ? ` (${r.note})` : ''}</li>)}</ul>
 

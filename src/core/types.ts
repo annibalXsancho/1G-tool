@@ -1,6 +1,6 @@
 import type { Dimension } from './units';
 
-export type Category = 'thermique' | 'fluides' | 'electricite' | 'utilites' | 'suivi';
+export type Category = 'vapeur' | 'thermique' | 'fluides' | 'electricite' | 'utilites' | 'suivi';
 
 /** Condition d'affichage d'un champ : la valeur brute du champ `key` doit appartenir à `in`. */
 export type Condition = { key: string; in: string[] };
@@ -57,12 +57,25 @@ export type Warning = {
   message: string;
 };
 
-export type Formula = { label: string; symbolic: string; substituted: string };
+/** Définition d'un symbole d'une formule (légende) : `symbol` en LaTeX. */
+export type SymbolDef = { symbol: string; meaning: string; unit?: string };
+
+export type Formula = {
+  label: string;
+  /** Formule littérale (LaTeX). */
+  symbolic: string;
+  /** Application numérique (LaTeX), valeurs substituées. */
+  substituted: string;
+  /** Légende des symboles employés. */
+  legend?: SymbolDef[];
+  /** Commentaire : origine d'un coefficient, choix retenu, etc. */
+  note?: string;
+};
 
 export type FieldError = { key?: string; message: string };
 
 /** Rendu sur mesure optionnel ; l'interface ignore les types qu'elle ne connaît pas. */
-export type Display = {
+export type ScatterRegressionDisplay = {
   type: 'scatter-regression';
   xLabel: string;
   yLabel: string;
@@ -70,12 +83,27 @@ export type Display = {
   line: { x: number; y: number }[];
 };
 
+/** Tableau de sensibilité : valeurs en SI, formatées par l'interface selon `dimension`/`unit`. */
+export type TableDisplay = {
+  type: 'table';
+  title: string;
+  note?: string;
+  columns: { label: string; dimension?: Dimension; unit?: string }[];
+  rows: (number | string)[][];
+  /** Index de la ligne correspondant à la saisie courante. */
+  highlight?: number;
+};
+
+export type Display = ScatterRegressionDisplay | TableDisplay;
+
 export type ResultOk<O> = {
   ok: true;
   main: Quantity[];
   intermediates: Quantity[];
   warnings: Warning[];
   formulas: Formula[];
+  /** Phrase de conclusion en langage courant (ex. « Le purgeur perd 52 kg/h, soit 9 500 €/an »). */
+  conclusion?: string;
   display?: Display;
   data: O;
 };
@@ -92,6 +120,12 @@ export type Calculator<I, O> = {
   references: Reference[];
   assumptions: string[];
   validity: string[];
+  /** Principe du calcul expliqué en langage courant, un paragraphe par entrée. */
+  method?: string[];
+  /** Ce que l'outil ne vérifie pas, et où le vérifier. */
+  scope?: string;
+  /** Identifiants d'outils liés. */
+  related?: string[];
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
