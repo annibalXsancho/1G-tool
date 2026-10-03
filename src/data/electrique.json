@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "titre": "Données électriques pour l'unifilaire : conducteurs, réactance, facteur de tension, séries usuelles",
+    "source": "Résistivités à 20 °C : cuivre recuit 0,017241 Ω·mm²/m (valeur internationale de référence), aluminium 0,0282 Ω·mm²/m (valeur usuelle). Résistivités en service (conducteur chaud, calcul de chute de tension) : cuivre 0,0225 et aluminium 0,036 Ω·mm²/m, valeurs courantes de la pratique française. Réactance linéique des câbles basse tension : 0,08 mΩ/m, valeur usuelle de guide. Facteur de tension c = 1,05 (court-circuit maximal, basse tension à tolérance +6 %), méthode des impédances inspirée de la CEI 60909. TODO: source à vérifier (références exactes de la CEI 60909, de la NF C 15-100 / UTE C 15-105 et du guide pour la réactance).",
+    "date": "2026-10-03",
+    "note": "Séries usuelles (sections, calibres, transformateurs, pouvoirs de coupure) : propositions de saisie, non imposées. rapport_R_sur_X_source : rapport R/X de l'impédance du réseau amont, hypothèse courante. Pour corriger une valeur, éditer ce fichier."
+  },
+  "conducteurs": {
+    "cuivre": { "label": "Cuivre", "rho20": 0.017241, "rhoService": 0.0225 },
+    "aluminium": { "label": "Aluminium", "rho20": 0.0282, "rhoService": 0.036 }
+  },
+  "reactanceLineique_mOhm_par_m": 0.08,
+  "facteurTension_c": 1.05,
+  "rapportRsurX_source": 0.1,
+  "series": {
+    "sections_mm2": [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300, 400, 500, 630],
+    "calibres_A": [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 320, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000],
+    "transformateurs_kVA": [100, 160, 250, 400, 630, 800, 1000, 1250, 1600, 2000, 2500],
+    "pouvoirsCoupure_kA": [6, 10, 16, 25, 36, 50, 65, 70, 85, 100]
+  }
+}

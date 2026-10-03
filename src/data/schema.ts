@@ -33,3 +33,15 @@ export type FuelEntry = {
 };
 
 export type CombustiblesFile = { meta: DataMeta; combustibles: Record<string, FuelEntry> };
+
+export type ElectriqueFile = {
+  meta: DataMeta;
+  conducteurs: Record<'cuivre' | 'aluminium', { label: string; rho20: number; rhoService: number }>;
+  /** Réactance linéique des câbles, mΩ/m. */
+  reactanceLineique_mOhm_par_m: number;
+  /** Facteur de tension c (court-circuit maximal). */
+  facteurTension_c: number;
+  /** Rapport R/X de l'impédance du réseau amont. */
+  rapportRsurX_source: number;
+  series: { sections_mm2: number[]; calibres_A: number[]; transformateurs_kVA: number[]; pouvoirsCoupure_kA: number[] };
+};

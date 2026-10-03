@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CombustiblesFile, FluidesFile } from './schema';
+import type { CombustiblesFile, ElectriqueFile, FluidesFile } from './schema';
 
 const files = import.meta.glob('./*.json', { eager: true, import: 'default' }) as Record<string, { meta?: unknown }>;
 
@@ -45,6 +45,24 @@ describe('fichiers JSON de src/data', () => {
         expect(c.siegert.B, id).toBeGreaterThan(0);
         expect(c.siegert.B, id).toBeLessThan(0.05);
       }
+    }
+  });
+
+  it('electrique.json : forme, séries croissantes, ordres de grandeur', async () => {
+    const f = (await import('./electrique.json')).default as unknown as ElectriqueFile;
+    for (const m of ['cuivre', 'aluminium'] as const) {
+      expect(f.conducteurs[m].rho20, m).toBeGreaterThan(0.015);
+      expect(f.conducteurs[m].rho20, m).toBeLessThan(0.04);
+      expect(f.conducteurs[m].rhoService, m).toBeGreaterThan(f.conducteurs[m].rho20);
+    }
+    expect(f.conducteurs.aluminium.rho20).toBeGreaterThan(f.conducteurs.cuivre.rho20);
+    expect(f.reactanceLineique_mOhm_par_m).toBeGreaterThan(0.05);
+    expect(f.reactanceLineique_mOhm_par_m).toBeLessThan(0.15);
+    expect(f.facteurTension_c).toBeGreaterThanOrEqual(1);
+    expect(f.facteurTension_c).toBeLessThanOrEqual(1.1);
+    for (const [k, arr] of Object.entries(f.series)) {
+      expect(arr.length, k).toBeGreaterThan(3);
+      arr.forEach((v, i) => { if (i > 0) expect(v, k).toBeGreaterThan(arr[i - 1]); });
     }
   });
 });
