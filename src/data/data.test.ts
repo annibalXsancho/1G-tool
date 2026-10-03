@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CombustiblesFile, ElectriqueFile, FluidesFile } from './schema';
+import type { CombustiblesFile, EcsFile, ElectriqueFile, FluidesFile } from './schema';
 
 const files = import.meta.glob('./*.json', { eager: true, import: 'default' }) as Record<string, { meta?: unknown }>;
 
@@ -64,5 +64,29 @@ describe('fichiers JSON de src/data', () => {
       expect(arr.length, k).toBeGreaterThan(3);
       arr.forEach((v, i) => { if (i > 0) expect(v, k).toBeGreaterThan(arr[i - 1]); });
     }
+  });
+  it('ecs.json : forme, ordres de grandeur, tailles croissantes', async () => {
+    const f = (await import('./ecs.json')).default as unknown as EcsFile;
+    expect(f.referenceStandard.volume40_L_par_jour_T3).toBe(f.logements.T3.volume40_L_par_jour);
+    const types = ['T1', 'T2', 'T3', 'T4', 'T5'] as const;
+    types.forEach((t, i) => {
+      expect(f.logements[t].ns).toBeGreaterThan(0);
+      expect(f.logements[t].volume40_L_par_jour).toBeGreaterThan(30);
+      expect(f.logements[t].volume40_L_par_jour).toBeLessThan(400);
+      if (i > 0) { expect(f.logements[t].ns).toBeGreaterThan(f.logements[types[i - 1]].ns); expect(f.logements[t].volume40_L_par_jour).toBeGreaterThan(f.logements[types[i - 1]].volume40_L_par_jour); }
+    });
+    for (const [id, u] of Object.entries(f.tertiaire)) {
+      expect(u.min, id).toBeGreaterThan(0);
+      expect(u.max, id).toBeGreaterThanOrEqual(u.min);
+      expect(u.defaut, id).toBeGreaterThanOrEqual(u.min);
+      expect(u.defaut, id).toBeLessThanOrEqual(u.max);
+    }
+    for (const k of ['min10', 'h1', 'h8'] as const) { expect(f.pointes[k].coef).toBeGreaterThan(0); expect(f.pointes[k].exposant).toBeGreaterThan(0); expect(f.pointes[k].exposant).toBeLessThan(1); }
+    expect(f.semiInstantane.circulateurPermanent.exposant).toBeLessThan(0);
+    expect(f.semiInstantane.circulateurArretable.exposant).toBeLessThan(0);
+    f.taillesCommerciales_L.forEach((v, i) => { if (i > 0) expect(v).toBeGreaterThan(f.taillesCommerciales_L[i - 1]); });
+    expect(f.stratification.min).toBeLessThan(f.stratification.defaut);
+    expect(f.stratification.defaut).toBeLessThan(f.stratification.max);
+    expect(f.eau.cp_Wh_par_L_K).toBeCloseTo(1.163, 3);
   });
 });

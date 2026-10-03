@@ -99,6 +99,28 @@
   min-height: 44px; padding: 0 6px; background: var(--sunken); border: 1px solid var(--rule-strong);
   border-radius: var(--radius); font-family: var(--font-mono); font-size: 13px; color: var(--ink-2);
 }
+/* Schéma ECS : écoulements animés (pointillés qui défilent), pompes, flamme, pertes de boucle. */
+@keyframes ecs-flow { to { stroke-dashoffset: -16; } }
+@keyframes ecs-flow-rev { to { stroke-dashoffset: 16; } }
+@keyframes ecs-spin { to { transform: rotate(360deg); } }
+@keyframes ecs-flame { 0%, 100% { transform: scaleY(1) scaleX(1); } 35% { transform: scaleY(1.08) scaleX(0.96); } 70% { transform: scaleY(0.95) scaleX(1.04); } }
+@keyframes ecs-loss { 0%, 100% { opacity: 0.25; transform: translateY(2px); } 50% { opacity: 1; transform: translateY(-3px); } }
+.ecs-flow { stroke-dasharray: 6 10; animation: ecs-flow var(--dur, 1.2s) linear infinite; }
+.ecs-flow.rev { animation-name: ecs-flow-rev; }
+.ecs-spin { transform-box: fill-box; transform-origin: center; animation: ecs-spin 1.4s linear infinite; }
+.ecs-spin.slow { animation-duration: 2.6s; }
+.ecs-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: ecs-flame 1.1s ease-in-out infinite; }
+.ecs-loss { animation: ecs-loss 1.8s ease-in-out infinite; }
+.ecs-layer { transition: y 0.25s linear, height 0.25s linear; }
+.ecs-paused .ecs-flow, .ecs-paused .ecs-spin, .ecs-paused .ecs-flame, .ecs-paused .ecs-loss { animation-play-state: paused; }
+.ecs-part { cursor: pointer; outline: none; }
+.ecs-part .ecs-hit { transition: stroke 0.12s; }
+.ecs-part:hover .ecs-hit, .ecs-part:focus-visible .ecs-hit { stroke: var(--accent); stroke-dasharray: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ecs-flow, .ecs-spin, .ecs-flame, .ecs-loss { animation: none; }
+  .ecs-layer { transition: none; }
+}
+
 .print-only { display: none; }
 
 @page plan { size: A4 landscape; margin: 10mm; }

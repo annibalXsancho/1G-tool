@@ -45,3 +45,21 @@ export type ElectriqueFile = {
   rapportRsurX_source: number;
   series: { sections_mm2: number[]; calibres_A: number[]; transformateurs_kVA: number[]; pouvoirsCoupure_kA: number[] };
 };
+
+type PowerLaw = { coef: number; exposant: number };
+
+export type EcsFile = {
+  meta: DataMeta;
+  referenceStandard: { volume40_L_par_jour_T3: number; T_eauFroideReference_C: number; T_stockageReference_C: number; T_puisage_C: number };
+  logements: Record<'T1' | 'T2' | 'T3' | 'T4' | 'T5', { label: string; ns: number; volume40_L_par_jour: number }>;
+  tertiaire: Record<string, { label: string; unite: string; min: number; max: number; defaut: number }>;
+  pointes: { min10: PowerLaw; h1: PowerLaw; h8: PowerLaw; Ns_minimal: number };
+  semiInstantane: { circulateurPermanent: PowerLaw; circulateurArretable: PowerLaw; V1: { a: number; b: number }; domaineVolume_L: [number, number] };
+  boucle: Record<'neuf' | 'ancien', { label: string; fraction_besoin_journalier: number }>;
+  pertesStatiques: { a_W: number; b_W: number; exposant: number; dT_mesure_K: number; volumeMax_L: number };
+  stratification: { min: number; defaut: number; max: number };
+  rendementReconstitution: number;
+  taillesCommerciales_L: number[];
+  reglementation: { stockageSeuil_L: number; stockageTmin_C: number; bouclesTmin_C: number; puisageTmax_C: number };
+  eau: { cp_Wh_par_L_K: number };
+};

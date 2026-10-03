@@ -1,0 +1,62 @@
+{
+  "meta": {
+    "titre": "Eau chaude sanitaire collective : besoins, pointes de puisage, corrélations de dimensionnement, tailles commerciales",
+    "source": "Besoins journaliers à 40 °C par type de logement (COSTIC / ADEME 2016, parc social) et coefficients de logement standard Ns : valeurs relevées sur la page de référence calculpro.fr/outils/plomberie/production-stockage-ecs. Pointes de puisage : formules COSTIC V10 = 61·Ns^0,503, V60 = 83·Ns^0,708, V480 = 294·Ns^0,762 (litres à 60 °C, eau froide à 9 °C), même source. Corrélations puissance-volume semi-instantané COSTIC 2019 : P = 14·V^-0,365 (circulateur permanent) et P = 17·V^-0,385 (circulateur arrêtable), même source ; unité retenue : kW par logement standard, V en litres, domaine 300 à 4 000 L. Ratios tertiaires : fourchettes observées relevées sur la même page. Perte statique maximale d'un ballon : Règlement (UE) 814/2013, annexe II, S = 16,66 + 8,33·V^0,4 (W, V en L, mesurée à 45 K d'écart). Arrêté du 30 novembre 2005 (légionelles, brûlures). TODO: source à vérifier (consulter les publications COSTIC 2016 et 2019, le règlement 814/2013 et l'arrêté du 30/11/2005 ; l'unité exacte des corrélations P-V et les ratios tertiaires ne sont pas confirmés par la source primaire).",
+    "date": "2026-10-03",
+    "note": "Toutes les valeurs sont modifiables dans l'outil. Les ratios tertiaires donnent la fourchette observée ; la valeur par défaut est la borne basse (ou la valeur unique). Tailles commerciales : série usuelle de ballons, proposition de saisie non imposée. Pour corriger une valeur, éditer ce fichier."
+  },
+  "referenceStandard": {
+    "volume40_L_par_jour_T3": 110,
+    "T_eauFroideReference_C": 9,
+    "T_stockageReference_C": 60,
+    "T_puisage_C": 40
+  },
+  "logements": {
+    "T1": { "label": "T1", "ns": 0.6, "volume40_L_par_jour": 75 },
+    "T2": { "label": "T2", "ns": 0.7, "volume40_L_par_jour": 95 },
+    "T3": { "label": "T3", "ns": 1.0, "volume40_L_par_jour": 110 },
+    "T4": { "label": "T4", "ns": 1.4, "volume40_L_par_jour": 135 },
+    "T5": { "label": "T5", "ns": 1.8, "volume40_L_par_jour": 190 }
+  },
+  "tertiaire": {
+    "hotel": { "label": "Hôtel", "unite": "chambre", "min": 125, "max": 270, "defaut": 125 },
+    "ehpad": { "label": "EHPAD", "unite": "lit", "min": 65, "max": 65, "defaut": 65 },
+    "hopital": { "label": "Hôpital", "unite": "lit", "min": 90, "max": 90, "defaut": 90 },
+    "vestiaires": { "label": "Vestiaires sportifs", "unite": "personne", "min": 60, "max": 60, "defaut": 60 },
+    "restaurant": { "label": "Restaurant", "unite": "repas", "min": 18, "max": 18, "defaut": 18 },
+    "camping": { "label": "Camping, hébergement collectif", "unite": "personne", "min": 54, "max": 56, "defaut": 54 }
+  },
+  "pointes": {
+    "min10": { "coef": 61, "exposant": 0.503 },
+    "h1": { "coef": 83, "exposant": 0.708 },
+    "h8": { "coef": 294, "exposant": 0.762 },
+    "Ns_minimal": 10
+  },
+  "semiInstantane": {
+    "circulateurPermanent": { "coef": 14, "exposant": -0.365 },
+    "circulateurArretable": { "coef": 17, "exposant": -0.385 },
+    "V1": { "a": 2.4, "b": 0.18 },
+    "domaineVolume_L": [300, 4000]
+  },
+  "boucle": {
+    "neuf": { "label": "Bâtiment neuf (SOCOL)", "fraction_besoin_journalier": 0.6 },
+    "ancien": { "label": "Bâtiment ancien", "fraction_besoin_journalier": 1.0 }
+  },
+  "pertesStatiques": {
+    "a_W": 16.66,
+    "b_W": 8.33,
+    "exposant": 0.4,
+    "dT_mesure_K": 45,
+    "volumeMax_L": 2000
+  },
+  "stratification": { "min": 0.45, "defaut": 0.8, "max": 0.95 },
+  "rendementReconstitution": 0.9,
+  "taillesCommerciales_L": [300, 500, 750, 1000, 1500, 2000, 2500, 3000, 4000, 5000],
+  "reglementation": {
+    "stockageSeuil_L": 400,
+    "stockageTmin_C": 55,
+    "bouclesTmin_C": 50,
+    "puisageTmax_C": 50
+  },
+  "eau": { "cp_Wh_par_L_K": 1.163 }
+}

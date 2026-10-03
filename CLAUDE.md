@@ -22,6 +22,10 @@ Node est installé dans `~/.local/node` : préfixer par `export PATH=$HOME/.loca
   par différence / inconnu, couverture pondérée, contrôles, recommandations), `layout.ts` (mise en page automatique),
   `excel.ts` (import/export multi-plans), `drawio.ts` (export diagrams.net), `edit.ts` (modifications pures). Le rendu
   SVG est dans `src/ui/metering/PlanSvg.tsx` (variante « sheet » pour les exports et l'impression A4 paysage).
+- `src/ecs/` : dimensionnement d'une production d'ECS collective (pur) : `calc.ts` (besoins, pointes COSTIC, bilan
+  stock + production, couples puissance-volume, trois modes, pertes, vérifications réglementaires, formules de la note),
+  données dans `src/data/ecs.json`. Le schéma animé est `src/ui/ecs/SchemaSvg.tsx` (animations CSS `.ecs-*` dans
+  `globals.css`, variante « sheet » statique pour l'export), les graphiques `src/ui/ecs/charts.ts`, la page `EcsPage.tsx`.
 - `src/lib/undo-store.ts` : stockage local + annulation, utilisé par le modèle de site et les plans de comptage.
 - `src/data/` : JSON datés et sourcés (`meta.source`, `meta.date`), typés dans `schema.ts`, vérifiés par `data.test.ts`.
 - `src/ui/`, `src/app/` : rendu générique. Aucune connaissance d'un calculateur particulier.
@@ -44,3 +48,13 @@ Node est installé dans `~/.local/node` : préfixer par `export PATH=$HOME/.loca
   (`src/ui/site/carriers.ts`) ; les exports d'images utilisent le thème clair.
 - Interface : tokens CSS (`globals.css`), thèmes clair/sombre, chiffres en `tabular-nums`, pas d'ombres ni de dégradés.
 - Un commit par calculateur.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
