@@ -92,6 +92,8 @@ export type TableDisplay = {
   rows: (number | string)[][];
   /** Index de la ligne correspondant à la saisie courante. */
   highlight?: number;
+  /** Colonne tracée par défaut dans la vue graphique (abscisse = colonne 0). */
+  chartColumn?: number;
 };
 
 export type Display = ScatterRegressionDisplay | TableDisplay;

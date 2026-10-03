@@ -75,6 +75,7 @@ export const vapeurFlash = defineCalculator<VapeurFlashInput, VapeurFlashOutput>
     levels.sort((a, b) => a - b);
     const display = {
       type: 'table' as const,
+      chartColumn: 2,
       title: 'Fraction flash selon la pression basse',
       columns: [
         { label: 'Pression basse', dimension: 'pressure' as const, unit: 'bar(g)' },

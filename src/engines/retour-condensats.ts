@@ -66,6 +66,7 @@ export const retourCondensats = defineCalculator<RetourCondensatsInput, RetourCo
     temps.sort((a, b) => a - b);
     const display = {
       type: 'table' as const,
+      chartColumn: 2,
       title: 'Économie selon la température de retour',
       columns: [
         { label: 'T condensats', dimension: 'temperature' as const, unit: '°C' },

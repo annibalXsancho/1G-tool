@@ -9,9 +9,9 @@ import { KIND_LABEL, STATUS_LABEL, type SiteModel } from '@/site/model';
 import { fileSafe } from '@/lib/download';
 import { useSiteModel } from '@/lib/site-store';
 import { IconAlert, IconInfo, IconWarn } from '../icons';
-import SankeyChart, { type SankeyOptions } from './SankeyChart';
+import PlotlyChart, { exportChart } from '../charts/PlotlyChart';
 import { carrierColors } from './carriers';
-import { exportPng, exportSvg } from './export-svg';
+import { buildPurchaseBars, buildSankey, buildUsageBars, type SankeyOptions } from './charts';
 
 type Tab = 'sankey' | 'bilan' | 'donnees';
 const MWh = (j: number) => fmtNum(fromSI(j, 'energy', 'MWh'), 4);
@@ -114,9 +114,12 @@ export default function SitePage() {
   const [opts, setOpts] = useState<SankeyOptions>({ unit: 'MWh', showLosses: true });
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
 
   const analysis = useMemo(() => (model ? analyse(model) : null), [model]);
+  const sankey = useMemo(() => (model && analysis ? buildSankey(model, analysis, opts) : null), [model, analysis, opts]);
+  const usageBars = useMemo(() => (model && analysis ? buildUsageBars(model, analysis) : null), [model, analysis]);
+  const purchaseBars = useMemo(() => (analysis ? buildPurchaseBars(analysis) : null), [analysis]);
+  const sankeyHeight = model ? Math.max(460, model.nodes.length * 44 + 120) : 460;
   const base = fileSafe(model?.name || 'site');
 
   async function onFile(file: File) {
@@ -212,13 +215,15 @@ export default function SitePage() {
                   Afficher les pertes de transformation
                 </label>
                 <div className="ml-auto flex gap-2">
-                  <button type="button" className="btn" onClick={() => svgRef.current && exportPng(svgRef.current, `sankey-${base}.png`)}>Exporter PNG</button>
-                  <button type="button" className="btn" onClick={() => svgRef.current && exportSvg(svgRef.current, `sankey-${base}.svg`)}>Exporter SVG</button>
+                  <button type="button" className="btn" onClick={() => sankey && exportChart(sankey, 'png', `sankey-${base}`, { width: 1400, height: sankeyHeight + 80 })}>Exporter PNG</button>
+                  <button type="button" className="btn" onClick={() => sankey && exportChart(sankey, 'svg', `sankey-${base}`, { width: 1400, height: sankeyHeight + 80 })}>Exporter SVG</button>
                 </div>
               </div>
-              <SankeyChart ref={svgRef} model={model} analysis={analysis} options={opts} />
+              {analysis.hasCycle
+                ? <p className="p-4 text-[13px] text-err">Diagramme impossible : le modèle contient une boucle (voir Données & contrôles).</p>
+                : sankey && <PlotlyChart build={sankey} height={sankeyHeight} label={`Diagramme de Sankey des flux énergétiques de ${model.name}`} />}
               <p className="mt-2 text-[12px] text-ink-3">
-                Épaisseur des bandes proportionnelle à l’énergie annuelle ; couleur = vecteur énergétique. Les pertes de transformation sont calculées (entrées − sorties de chaque transformation). Survolez une bande pour le détail. Les exports sont en thème clair, pour les rapports.
+                Épaisseur des bandes proportionnelle à l’énergie annuelle ; couleur = vecteur énergétique. Les pertes de transformation sont calculées (entrées − sorties de chaque transformation). Survolez une bande pour le détail ; les postes peuvent être déplacés à la souris (verticalement) pour démêler le diagramme. Les exports sont en thème clair, pour les rapports.
               </p>
             </section>
           )}
@@ -238,6 +243,10 @@ export default function SitePage() {
                   b.efficiency === null ? '' : `${fmtNum(b.efficiency * 100, 3)} %`,
                 ])}
               />
+              <div className="grid gap-4 border-t pt-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                {usageBars && <PlotlyChart build={usageBars} height={Math.max(320, analysis.balances.filter((b) => b.node.kind === 'usage').length * 34 + 100)} label="Consommation finale par usage" exportName={`usages-${base}`} />}
+                {purchaseBars && <PlotlyChart build={purchaseBars} height={320} label="Énergie achetée par vecteur" exportName={`achats-${base}`} />}
+              </div>
               <p className="text-[12px] text-ink-3">Rendement apparent = sorties / entrées des transformations, tel que déduit des flux saisis. Un rendement anormal signale souvent un flux manquant ou mal attribué.</p>
             </section>
           )}

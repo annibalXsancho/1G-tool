@@ -134,6 +134,7 @@ export const purgeChaudiere = defineCalculator<PurgeInput, PurgeOutput>({
     tdsList.sort((a, b2) => a - b2);
     const display = {
       type: 'table' as const,
+      chartColumn: 1,
       title: 'Effet de la consigne de TDS en chaudière',
       columns: [
         { label: 'TDS chaudière', dimension: 'concentration' as const },

@@ -61,6 +61,7 @@ export const coutVapeur = defineCalculator<CoutVapeurInput, CoutVapeurOutput>({
     etas.sort((a, b) => a - b);
     const display = {
       type: 'table' as const,
+      chartColumn: 1,
       title: 'Sensibilité au rendement de la chaudière',
       columns: [
         { label: 'Rendement PCI', dimension: 'ratio' as const, unit: '%' },

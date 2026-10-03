@@ -70,6 +70,7 @@ export const purgeurDefaillant = defineCalculator<PurgeurInput, PurgeurOutput>({
     diam.sort((a, b) => a - b);
     const display = {
       type: 'table' as const,
+      chartColumn: 1,
       title: `Fuite par purgeur selon le diamètre (à ${barg(i.pAmont)})`,
       columns: [
         { label: 'Diamètre', dimension: 'length' as const, unit: 'mm' },

@@ -20,7 +20,7 @@ export function carrierColors(carriers: string[]): Map<string, string> {
   const map = new Map<string, string>();
   const used = new Set<number>();
   const rest: string[] = [];
-  for (const c of carriers) {
+  for (const c of new Set(carriers)) {
     if (c === LOSS_CARRIER) { map.set(c, '--series-loss'); continue; }
     const hit = FIXED.find(([re]) => re.test(norm(c)));
     if (hit && !used.has(hit[1])) { map.set(c, `--series-${hit[1]}`); used.add(hit[1]); } else rest.push(c);

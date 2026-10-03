@@ -173,6 +173,7 @@ export const rendementChaudiere = defineCalculator<RendementInput, RendementOutp
 
     const display = {
       type: 'table' as const,
+      chartColumn: 2,
       title: 'Gains selon l’amélioration du rendement',
       columns: [
         { label: 'Rendement PCI visé', dimension: 'ratio' as const, unit: '%' },
