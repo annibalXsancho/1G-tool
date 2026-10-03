@@ -28,8 +28,8 @@ Node est installé dans `~/.local/node` : préfixer par `export PATH=$HOME/.loca
   `globals.css`, variante « sheet » statique pour l'export), les graphiques `src/ui/ecs/charts.ts`, la page `EcsPage.tsx`.
 - `src/suivi/` : suivi énergétique (pur) : `dju.ts` (DJU/DJR Costic), `regress.ts` (moindres carrés, Student), `aggregate.ts`
   (jour → semaine/mois, périodes incomplètes écartées), `analyse.ts` (signature, économies IPMVP option C avec
-  incertitude, CUSUM, IPÉ, normalisation, contrôles), `parse.ts` (CSV/Excel), `exemple.ts` (jeu déterministe). Algorithmes
-  repris du tableau de bord `energy-dashboard` (`js/weather.js`). UI : `src/ui/suivi/`, route `/suivi/`.
+  incertitude, CUSUM, IPÉ, normalisation, contrôles), `parse.ts` (CSV/Excel), `exemple.ts` (jeu déterministe). DJU et ratio kWh/DJU
+  conformes au cours « Optimisation énergétique des bâtiments » (`1G etudes/`), exemples tirés de ses TD. UI : `src/ui/suivi/`, route `/suivi/`.
 - `src/lib/undo-store.ts` : stockage local + annulation, utilisé par le modèle de site et les plans de comptage.
 - `src/data/` : JSON datés et sourcés (`meta.source`, `meta.date`), typés dans `schema.ts`, vérifiés par `data.test.ts`.
 - `src/ui/`, `src/app/` : rendu générique. Aucune connaissance d'un calculateur particulier.

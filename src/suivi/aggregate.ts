@@ -1,6 +1,6 @@
 // Agrégation des relevés journaliers en périodes (semaine, mois) avec leurs degrés-jours. Pur.
 // Les périodes incomplètes sont écartées : une semaine de six jours pesée comme sept se placerait sous la droite
-// (même règle que weekly() dans js/weather.js du tableau de bord).
+// et la saison de chauffe annule les DJU hors saison, comme dans le corrigé du TD n°5 du cours.
 import { coolingDegreeDay, heatingDegreeDay } from './dju';
 import type { Config, Period, Row } from './model';
 
@@ -19,10 +19,19 @@ export function rowDegreeDays(r: Row, base: number): { dju: number; djr: number 
   };
 }
 
-export function toPeriods(rows: Row[], cfg: Pick<Config, 'grain' | 'base'>): Period[] {
+/** Le mois (1 à 12) est-il dans la saison de chauffe ? Une saison peut enjamber l'année (ex. octobre → mai). */
+export function inSeason(month: number, saison: Config['saison']): boolean {
+  if (!saison) return true;
+  const { debut, fin } = saison;
+  return debut <= fin ? month >= debut && month <= fin : month >= debut || month <= fin;
+}
+
+export function toPeriods(rows: Row[], cfg: Pick<Config, 'grain' | 'base' | 'saison'>): Period[] {
   const sorted = [...rows].filter((r) => /^\d{4}-\d{2}-\d{2}/.test(r.date) && Number.isFinite(r.kwh)).sort((a, b) => a.date.localeCompare(b.date));
+  // Hors saison de chauffe, les DJU de la journée sont comptés nuls (le chauffage est arrêté), avant toute agrégation.
+  const degreeDays = (r: Row) => { const d = rowDegreeDays(r, cfg.base); return inSeason(parseDay(r.date).getMonth() + 1, cfg.saison) ? d : { ...d, dju: 0 }; };
   if (cfg.grain === 'brut' || cfg.grain === 'jour') {
-    return sorted.map((r) => ({ id: r.date.slice(0, 10), start: r.date.slice(0, 10), days: r.jours ?? 1, kwh: r.kwh, ...rowDegreeDays(r, cfg.base), x: r.x ?? 0 }));
+    return sorted.map((r) => ({ id: r.date.slice(0, 10), start: r.date.slice(0, 10), days: r.jours ?? 1, kwh: r.kwh, ...degreeDays(r), x: r.x ?? 0 }));
   }
   const groups = new Map<string, Period & { n: number }>();
   for (const r of sorted) {
@@ -34,7 +43,7 @@ export function toPeriods(rows: Row[], cfg: Pick<Config, 'grain' | 'base'>): Per
     }
     let g = groups.get(key);
     if (!g) { g = { id: key, start, days: 0, kwh: 0, dju: 0, djr: 0, x: 0, n: 0 }; groups.set(key, g); }
-    const dd = rowDegreeDays(r, cfg.base);
+    const dd = degreeDays(r);
     g.kwh += r.kwh; g.dju += dd.dju; g.djr += dd.djr; g.x += r.x ?? 0; g.n += 1; g.days += r.jours ?? 1;
   }
   const out: Period[] = [];

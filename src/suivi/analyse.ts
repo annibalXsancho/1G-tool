@@ -62,6 +62,8 @@ export type Analysis = {
   savings: Savings | null;
   ipe: Ipe | null;
   normalised: Normalised | null;
+  /** Répartition de la consommation de référence : part climatique (variables du modèle) et talon (ECS, process, veille). */
+  parts: { climatique: number; talon: number; part: number };
   checks: Check[];
   formulas: Formula[];
   tCrit: number;
@@ -137,6 +139,10 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
   }
 
   // Contrôles de qualité du modèle.
+  const talon = fit.coef[0] * fit.n;
+  const climatique = refPeriods.reduce((s, p) => s + cfg.regressors.reduce((t, r, j) => t + fit.coef[j + 1] * col(p, r), 0), 0);
+  const parts = { climatique, talon, part: climatique + talon !== 0 ? (climatique / (climatique + talon)) * 100 : NaN };
+
   const checks: Check[] = [];
   const minN = T.pointsMin[cfg.grain];
   checks.push(fit.n >= minN
@@ -175,14 +181,14 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
       symbolic: 'DJU = \\begin{cases} 0 & T_{min} \\ge B \\\\ B - \\dfrac{T_{min}+T_{max}}{2} & T_{max} \\le B \\\\ (B - T_{min})\\left(0{,}08 + 0{,}42\\,\\dfrac{B - T_{min}}{T_{max} - T_{min}}\\right) & \\text{sinon} \\end{cases}',
       substituted: `B = ${tex(cfg.base, 3)}\\ ^\\circ\\text{C} \\quad \\Sigma\\text{DJU} = ${tex(refPeriods.reduce((s, p) => s + p.dju, 0), 4)}\\ \\text{sur la référence}`,
       legend: [{ symbol: 'B', meaning: 'température de base', unit: '°C' }, { symbol: 'T_{min}, T_{max}', meaning: 'températures extrêmes de la journée', unit: '°C' }],
-      note: 'Méthode reprise du tableau de bord energy-dashboard (js/weather.js). TODO: source à vérifier (référence Costic / Météo-France du cours).',
+      note: 'Cours « Optimisation énergétique des bâtiments » (ISTP 2026), p. 101 : méthode COSTIC, TNC = température de non-chauffage (18 à 20 °C). Le calcul reproduit les DJU du corrigé du TD n°5 (exercice 3).',
     },
     {
       label: 'Modèle de la situation de référence (signature énergétique)',
       symbolic: `${eqSym} \\qquad \\text{moindres carrés sur les } n \\text{ périodes de référence}`,
       substituted: `${eqNum} \\quad (n = ${fit.n}, \; R^2 = ${tex(fit.r2, 3)})`,
       legend: [{ symbol: 'a', meaning: 'talon : consommation indépendante des variables', unit: 'kWh/période' }, { symbol: 'b_1', meaning: 'sensibilité : kWh par unité de variable', unit: 'kWh/unité' }],
-      note: 'Le grain (semaine ou mois) doit être choisi pour que le rythme hebdomadaire ne masque pas la température : le tableau de bord a mesuré R² = 0,14 au jour contre 0,96 à la semaine sur un relevé de test.',
+      note: 'La pente b₁ est le « ratio kWh/DJU » du cours (consommation de chauffage divisée par les DJU de l’année). Le grain (semaine ou mois) doit être choisi pour que le rythme hebdomadaire d’exploitation ne masque pas l’effet de la température.',
     },
     {
       label: 'Qualité du modèle',
@@ -219,7 +225,7 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
       symbolic: `IPE = \\dfrac{\\sum E}{\\sum D} \\qquad IPE_{mod} = \\dfrac{\\sum E_i}{\\sum \\hat E_i}`,
       substituted: `IPE_{ref} = ${tex(ipe.reference, 4)} \\to IPE_{suivi} = ${tex(ipe.suivi, 4)}\\ \\text{(${ipe.label})} \; (${tex(ipe.change, 3)}\\ \\%) \\qquad IPE_{mod} = ${tex(ipe.modelRatio, 4)}`,
       legend: [{ symbol: 'D', meaning: 'dénominateur choisi (jours, DJU, variable libre)' }, { symbol: 'IPE_{mod}', meaning: 'rapport mesuré / attendu : < 1 = mieux que la référence à conditions égales' }],
-      note: 'ISO 50006 : l’IPÉ simple est trompé par les changements de climat ou d’activité ; l’IPÉ de modèle les neutralise. TODO: source à vérifier (ISO 50006 et cours).',
+      note: 'Cours « Réseaux d’utilités » (D. Brun, VE 2026) : l’IPÉ relie l’énergie à l’usage ou à la production (ex. kWh/tonne) ; ne pas confondre efficacité (ISO 50001 §3.8) et performance (§3.12). L’IPÉ simple est trompé par les changements de climat ou d’activité, l’IPÉ de modèle les neutralise. TODO: ISO 50006 à vérifier.',
     });
   }
 
@@ -227,7 +233,7 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
     ? `Sur ${savings.m} période(s) de suivi, la consommation est de ${f(savings.measured)} kWh pour ${f(savings.expected)} kWh attendus : ${savings.total >= 0 ? 'économie' : 'surconsommation'} de ${f(Math.abs(savings.total))} kWh (${f(Math.abs(savings.pct), 3)} %), ±${f(savings.U)} kWh à ${Math.round(cfg.confidence * 100)} % de confiance${savings.significant ? '' : ' : écart non démontré'}.`
     : `Modèle de référence : ${f(fit.coef[0])} kWh de talon par période${nv ? ` et ${fit.coef.slice(1).map((c, j) => `${f(c)} kWh par ${REGRESSOR_LABEL[cfg.regressors[j]].toLowerCase()}`).join(', ')}` : ''} (R² = ${f(fit.r2, 3)}).`;
 
-  return { regressors: cfg.regressors, fit, lines, referenceN: rl.length, suiviN: sl.length, savings, ipe, normalised, checks, formulas, tCrit: tc, conclusion };
+  return { regressors: cfg.regressors, fit, lines, referenceN: rl.length, suiviN: sl.length, savings, ipe, normalised, parts, checks, formulas, tCrit: tc, conclusion };
 }
 
 export const isAnalysis = (a: Analysis | { errors: string[] }): a is Analysis => 'fit' in a;

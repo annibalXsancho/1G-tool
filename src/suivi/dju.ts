@@ -1,6 +1,6 @@
 // Degrés-jours unifiés (méthode Costic) d'une journée à partir de ses températures minimale et maximale. Pur.
-// Même formule que js/weather.js du tableau de bord energy-dashboard : une journée à cheval sur la base est pondérée
-// (0,08 / 0,42), sans quoi l'entre-saison serait faussée du simple au double par la simple moyenne.
+// Cours « Optimisation énergétique des bâtiments » (ISTP 2026), p. 101 : une journée à cheval sur la température de
+// non-chauffage est pondérée (0,08 / 0,42), sans quoi l'entre-saison serait faussée par la simple moyenne.
 import { suivi } from '@/data';
 
 const { poidsDebut: A, poidsPente: B } = suivi.dju;

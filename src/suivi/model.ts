@@ -45,6 +45,8 @@ export type Config = {
   djuTypique?: number;
   djrTypique?: number;
   xTypique?: number;
+  /** Mois (1 à 12) de début et de fin de la saison de chauffe ; hors saison les DJU sont nuls. Absent = toute l'année. */
+  saison?: { debut: number; fin: number };
   unite: string;
   nom: string;
 };

@@ -4,7 +4,7 @@ import { suivi } from '@/data';
 import { fmtNum } from '@/core/fmt';
 import { analyse, isAnalysis, suggestRegressors, type Analysis, type Check } from '@/suivi/analyse';
 import { toPeriods } from '@/suivi/aggregate';
-import { exempleDoc } from '@/suivi/exemple';
+import { exempleBatimentGaz, exempleDoc, exempleReseauChaleur } from '@/suivi/exemple';
 import { GRAIN_LABEL, IPE_LABEL, PERIODS_PER_YEAR, REGRESSOR_LABEL, defaultConfig, type Config, type Doc, type Grain, type IpeDenom, type Period, type Regressor } from '@/suivi/model';
 import { csvToMatrix, parseTable, type ParseIssue } from '@/suivi/parse';
 import { fileSafe } from '@/lib/download';
@@ -16,6 +16,7 @@ import { FormulaStep } from '../Justification';
 import PlotlyChart from '../charts/PlotlyChart';
 import { buildCusum, buildSavingsBars, buildSeries, buildSignature } from './charts';
 
+const MOIS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 const f = (v: number, s = 4) => (Number.isFinite(v) ? fmtNum(v, s) : '—');
 const pct = (v: number) => (Number.isFinite(v) ? `${v > 0 ? '+' : ''}${fmtNum(v, 3)} %` : '—');
 
@@ -146,13 +147,15 @@ export default function SuiviPage() {
       <div>
         <p className="eyebrow">Suivi · ISO 50001 · IPMVP</p>
         <h1 className="text-[22px] font-semibold leading-tight tracking-tight sm:text-[26px]">Signature énergétique, IPÉ et CUSUM{cfg.nom ? <span className="text-ink-3"> · {cfg.nom}</span> : null}</h1>
-        <p className="mt-0.5 max-w-prose text-[13px] text-ink-2">Ajustez la consommation de la situation de référence sur la météo ou l’activité, puis mesurez ce que le site a économisé depuis une action, avec l’incertitude, le cumul des écarts (CUSUM) et les indicateurs de performance. Les degrés-jours suivent la méthode du tableau de bord energy-dashboard.</p>
+        <p className="mt-0.5 max-w-prose text-[13px] text-ink-2">Ajustez la consommation de la situation de référence sur la météo ou l’activité, puis mesurez ce que le site a économisé depuis une action, avec l’incertitude, le cumul des écarts (CUSUM) et les indicateurs de performance. Les degrés-jours suivent la méthode COSTIC du cours d’optimisation énergétique des bâtiments.</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
         <input ref={fileRef} type="file" accept=".csv,.txt,.xlsx" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
         <button type="button" className="btn !border-accent !bg-accent !text-accent-ink" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? 'Lecture…' : 'Importer un relevé (CSV, Excel)'}</button>
-        <button type="button" className="btn" onClick={() => { replace(exempleDoc()); setIssues([]); }}>Charger l’exemple</button>
+        <button type="button" className="btn" onClick={() => { replace(exempleDoc()); setIssues([]); }}>Exemple : usine avec action</button>
+        <button type="button" className="btn" onClick={() => { replace(exempleReseauChaleur()); setIssues([]); }}>TD : réseau de chaleur 2023</button>
+        <button type="button" className="btn" onClick={() => { replace(exempleBatimentGaz()); setIssues([]); }}>TD : bâtiment gaz 2022-23</button>
         {a && <button type="button" className="btn" onClick={exportExcel}>Exporter l’analyse (Excel)</button>}
         {doc && <button type="button" className="btn" disabled={!canUndo} onClick={undo}>↶ Annuler</button>}
         {doc && <button type="button" className="btn" onClick={() => { replace(null); setIssues([]); }}>Vider</button>}
@@ -170,7 +173,7 @@ export default function SuiviPage() {
         <section className="grid gap-4 border bg-surface p-4 md:grid-cols-2">
           <div className="space-y-2 text-[13px] text-ink-2">
             <h2 className="text-[15px] font-semibold text-ink">Démarrer</h2>
-            <p>Cliquez sur <strong className="text-ink">Charger l’exemple</strong> : une usine relevée au jour pendant 21 mois, avec une action d’économie à partir de mars 2026. Vous verrez la signature, le CUSUM et les économies mesurées.</p>
+            <p>Chargez un exemple : une usine relevée au jour pendant 21 mois avec une action d’économie à partir de mars 2026, ou les données réelles des TD du cours (réseau de chaleur 2023, bâtiment au gaz 2022-2023, météo de Saint-Étienne).</p>
             <p>Ou importez un fichier CSV ou Excel avec une ligne par jour (ou par période) et les colonnes : <em>Date</em>, <em>Énergie (kWh)</em>, puis <em>Tmin</em> et <em>Tmax</em> (les DJU sont calculés), ou <em>DJU</em> déjà calculés, ou une variable libre (<em>production</em>, <em>surface</em>).</p>
           </div>
           <div className="border-l-4 border-accent bg-accent-soft p-3 text-[13px]">
@@ -189,7 +192,7 @@ export default function SuiviPage() {
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <TextField label="Nom du site" value={cfg.nom} onCommit={(v) => setCfg({ nom: v })} />
               <SelectField label="Grain d’analyse" value={cfg.grain} options={(Object.keys(GRAIN_LABEL) as Grain[]).map((g) => ({ value: g, label: GRAIN_LABEL[g] }))} onChange={(g) => setCfg({ grain: g, periodsPerYear: PERIODS_PER_YEAR[g] })} />
-              <NumField label="Température de base des DJU" unit="°C" value={cfg.base} min={5} max={25} hint="18 °C par défaut ; à ajuster au bâtiment." onCommit={(v) => v !== undefined && setCfg({ base: v }, 'base')} />
+              <NumField label="Température de non-chauffage (TNC)" unit="°C" value={cfg.base} min={5} max={25} hint="Base des DJU : 18 à 20 °C usuellement (cours)." onCommit={(v) => v !== undefined && setCfg({ base: v }, 'base')} />
               <SelectField label="Indicateur de performance (IPÉ)" value={cfg.ipe} options={(Object.keys(IPE_LABEL) as IpeDenom[]).map((k) => ({ value: k, label: IPE_LABEL[k] }))} onChange={(v) => setCfg({ ipe: v })} />
             </div>
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -204,6 +207,11 @@ export default function SuiviPage() {
                 <p className="mt-1 text-[11px] text-ink-3">« Suggérer » retient le jeu dont le R² ajusté est le meilleur avec des coefficients positifs.</p>
               </fieldset>
               <div className="grid gap-3 sm:grid-cols-2">
+                <div className="sm:col-span-2 grid grid-cols-2 gap-3">
+                  <SelectField label="Chauffage : début de saison" value={String(cfg.saison?.debut ?? 0)} options={[{ value: '0', label: 'Toute l’année' }, ...MOIS.map((m, i) => ({ value: String(i + 1), label: m }))]} onChange={(v) => setCfg({ saison: Number(v) === 0 ? undefined : { debut: Number(v), fin: cfg.saison?.fin ?? 5 } })} />
+                  <SelectField label="Chauffage : fin de saison" value={String(cfg.saison?.fin ?? 0)} options={[{ value: '0', label: 'Toute l’année' }, ...MOIS.map((m, i) => ({ value: String(i + 1), label: m }))]} onChange={(v) => setCfg({ saison: Number(v) === 0 ? undefined : { debut: cfg.saison?.debut ?? 10, fin: Number(v) } })} />
+                  <p className="col-span-2 text-[11px] text-ink-3">Hors saison, les DJU sont comptés nuls (chauffage arrêté), comme dans le corrigé du cours.</p>
+                </div>
                 <DateField label="Référence : du" value={cfg.baselineFrom} onChange={(v) => setCfg({ baselineFrom: v })} hint="Début de période inclus." />
                 <DateField label="Référence : au" value={cfg.baselineTo} onChange={(v) => setCfg({ baselineTo: v })} />
                 <DateField label="Suivi : du" value={cfg.reportFrom} onChange={(v) => setCfg({ reportFrom: v })} hint="Vide = pas de suivi." />
@@ -233,8 +241,9 @@ export default function SuiviPage() {
             <>
               <Section n={2} title="Synthèse">
                 <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-                  <Stat strong label="Talon" value={f(a.fit.coef[0])} unit="kWh/période" hint={`≈ ${f(a.fit.coef[0] / (cfg.grain === 'mois' ? 30.4 : cfg.grain === 'semaine' ? 7 : 1))} kWh/jour`} />
+                  <Stat strong label="Talon" value={f(a.fit.coef[0])} unit="kWh/période" hint={`≈ ${f(a.fit.coef[0] / Math.max(1, a.lines.filter((l) => l.role === 'reference').reduce((t, l) => t + l.period.days, 0) / Math.max(1, a.referenceN)))} kWh/jour`} />
                   {a.regressors.map((r, j) => <Stat key={r} strong label={`Sensibilité ${r === 'dju' ? 'DJU' : r === 'djr' ? 'DJR' : 'variable'}`} value={f(a.fit.coef[j + 1])} unit="kWh/unité" hint={`t = ${f(a.fit.t[j + 1], 3)}`} />)}
+                  <Stat label="Part climatique" value={f(a.parts.part, 3)} unit="%" hint={`talon : ${f(a.parts.talon)} kWh (ECS, process, veille)`} />
                   <Stat label="R²" value={f(a.fit.r2, 3)} hint={`CV(RMSE) ${f(a.fit.cvrmse * 100, 3)} % · n = ${a.fit.n}`} />
                   {a.savings && <Stat strong label="Économie évitée" value={f(a.savings.total)} unit="kWh" hint={`${pct(a.savings.pct)} · ±${f(a.savings.U)} kWh (${Math.round(cfg.confidence * 100)} %)`} />}
                   {a.ipe && <Stat label={`IPÉ ${a.ipe.label}`} value={f(a.ipe.suivi)} hint={`référence ${f(a.ipe.reference)} (${pct(a.ipe.change)})`} />}
@@ -314,11 +323,11 @@ export default function SuiviPage() {
                 <section className="border bg-surface p-4">
                   <h2 className="eyebrow mb-2">Références</h2>
                   <ul className="list-disc space-y-1 pl-4 text-[13px] text-ink-2">
-                    <li>Tableau de bord energy-dashboard (<code>js/weather.js</code>) : DJU Costic, signature par semaine, correction climatique.</li>
+                    <li>Cours « Optimisation énergétique des bâtiments » (ISTP 2026), p. 101 : DJU COSTIC, température de non-chauffage, ratio kWh/DJU ; TD n°5 exercice 3 et TD n°2 exercice 6 (exemples).</li>
                     <li>IPMVP, Concepts de base, option C (régression). TODO: source à vérifier.</li>
                     <li>ASHRAE Guideline 14, annexe B (incertitude des économies). TODO: source à vérifier.</li>
                     <li>ISO 50001 (situation de référence) et ISO 50006 (IPÉ). TODO: source à vérifier.</li>
-                    <li>Vos cours : à renseigner dès que leur contenu est accessible.</li>
+                    <li>Cours « Réseaux d’utilités » (D. Brun, VE 2026) : définitions ISO 50001 de l’efficacité et de la performance, IPÉ.</li>
                   </ul>
                   <p className="mt-2 text-[12px] text-ink-3">Seuils et quantiles : <code>src/data/suivi.json</code>.</p>
                 </section>

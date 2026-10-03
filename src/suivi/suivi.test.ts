@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { analyse, isAnalysis, suggestRegressors } from './analyse';
-import { toPeriods } from './aggregate';
+import { inSeason, toPeriods } from './aggregate';
 import { coolingDegreeDay, heatingDegreeDay } from './dju';
-import { exempleDoc, exempleRows, EXEMPLE_PENTE } from './exemple';
+import { exempleBatimentGaz, exempleDoc, exempleReseauChaleur, exempleRows, EXEMPLE_PENTE, lignesMensuelles } from './exemple';
+import { TD5_EX3 } from './exemple-cours';
 import { defaultConfig, type Config, type Row } from './model';
 import { csvToMatrix, parseDate, parseNumber, parseTable } from './parse';
 import { invert, ols, predict, tCritical } from './regress';
@@ -166,5 +167,43 @@ describe('lecture de fichiers', () => {
   it('colonne d’énergie absente : erreur explicite', () => {
     const { issues } = parseTable([['Date', 'Autre'], ['01/01/2025', 3]]);
     expect(issues.some((i) => i.level === 'erreur' && /énergie/i.test(i.message))).toBe(true);
+  });
+});
+
+describe('données réelles des TD du cours (Saint-Étienne)', () => {
+  it('DJU recalculés = DJU du corrigé du TD n°5 exercice 3 (mois de la saison de chauffe)', () => {
+    // Corrigé DJ.xlsx : janv. 425,1 ; fév. 367,9 ; mars 279,77 ; avril 236,79 ; nov. 290,77 ; déc. 382,8 (base 18 °C).
+    const rows = lignesMensuelles(TD5_EX3, 18);
+    [0, 1, 2, 3, 10, 11].forEach((i) => expect(rows[i].dju!).toBeCloseTo(TD5_EX3.djuCours[i], 1));
+    // Hors saison le corrigé met les DJU à zéro ; l'outil le fait via la saison de chauffe.
+    expect(TD5_EX3.djuCours[6]).toBe(0);
+    expect(rows[6].dju!).toBeGreaterThan(0);
+  });
+  it('saison de chauffe : mois de la saison, y compris à cheval sur l’année', () => {
+    expect(inSeason(11, { debut: 11, fin: 4 })).toBe(true); expect(inSeason(2, { debut: 11, fin: 4 })).toBe(true); expect(inSeason(7, { debut: 11, fin: 4 })).toBe(false);
+    expect(inSeason(6, { debut: 4, fin: 9 })).toBe(true); expect(inSeason(1, { debut: 4, fin: 9 })).toBe(false);
+    expect(inSeason(7, undefined)).toBe(true);
+  });
+  it('réseau de chaleur 2023 : talon quasi nul, pente voisine du ratio kWh/DJU du cours', () => {
+    const doc = exempleReseauChaleur();
+    const ps = toPeriods(doc.rows, doc.config);
+    expect(ps.slice(4, 10).every((p) => p.dju === 0)).toBe(true);
+    const a = analyse(ps, doc.config);
+    if (!isAnalysis(a)) throw new Error('analyse');
+    const ratioCours = ps.reduce((s, p) => s + p.kwh, 0) / ps.reduce((s, p) => s + p.dju, 0); // Σ kWh / Σ DJU ≈ 692
+    expect(ratioCours).toBeGreaterThan(690); expect(ratioCours).toBeLessThan(695);
+    expect(a.fit.coef[1]).toBeGreaterThan(ratioCours * 0.9); expect(a.fit.coef[1]).toBeLessThan(ratioCours * 1.05);
+    expect(Math.abs(a.fit.coef[0])).toBeLessThan(0.02 * a.fit.mean);
+    expect(a.fit.r2).toBeGreaterThan(0.97);
+    expect(a.parts.part).toBeGreaterThan(97);
+    expect(a.checks.filter((c) => c.level === 'ko')).toHaveLength(0);
+  });
+  it('bâtiment au gaz 2022-23 : talon positif (ECS), sensibilité positive, qualité moyenne signalée', () => {
+    const doc = exempleBatimentGaz();
+    const a = analyse(toPeriods(doc.rows, doc.config), doc.config);
+    if (!isAnalysis(a)) throw new Error('analyse');
+    expect(a.fit.coef[0]).toBeGreaterThan(1000); expect(a.fit.coef[1]).toBeGreaterThan(100); expect(a.fit.coef[1]).toBeLessThan(150);
+    expect(a.fit.r2).toBeGreaterThan(0.8);
+    expect(a.checks.find((c) => c.id === 'cv')!.level).toBe('warn'); // CV(RMSE) ≈ 40 % : dispersion forte, dite
   });
 });
