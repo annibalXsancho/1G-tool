@@ -9,7 +9,11 @@ import { alpha } from '../charts/theme';
 import type { BuildChart } from '../charts/PlotlyChart';
 import { carrierColors } from './carriers';
 
-export type SankeyOptions = { unit: 'MWh' | 'GWh' | 'tep'; showLosses: boolean };
+export type SankeyOptions = {
+  unit: 'MWh' | 'GWh' | 'tep';
+  /** Énergies masquées par la légende (« Pertes » compris). */
+  hidden: string[];
+};
 
 const legendAnnotations = (items: { name: string; color: string }[], ink2: string): Partial<Layout>['annotations'] =>
   [{
@@ -19,8 +23,10 @@ const legendAnnotations = (items: { name: string; color: string }[], ink2: strin
   }];
 
 export function buildSankey(model: SiteModel, a: SiteAnalysis, opts: SankeyOptions): BuildChart {
-  return (t) => {
-    const links = a.hasCycle ? [] : a.links.filter((l) => opts.showLosses || !l.loss);
+  // Index de chaque flux du modèle dans `a.links` (les pertes calculées n'en ont pas) : sert au clic → édition.
+  const flowIndex = new Map(model.flows.map((f, i) => [f, i]));
+  return (t, ctx) => {
+    const links = a.hasCycle ? [] : a.links.filter((l) => !opts.hidden.includes(l.carrier));
     const ids = [...new Set(links.flatMap((l) => [l.from, l.to]))];
     const order = [...model.nodes.map((n) => n.id).filter((id) => ids.includes(id)), ...(ids.includes(LOSS_NODE_ID) ? [LOSS_NODE_ID] : [])];
     const idx = new Map(order.map((id, k) => [id, k]));
@@ -52,7 +58,11 @@ export function buildSankey(model: SiteModel, a: SiteAnalysis, opts: SankeyOptio
         target: links.map((l) => idx.get(l.to)!),
         value: links.map((l) => conv(l.value)),
         color: links.map((l) => alpha(t.token(colors.get(l.carrier)!), 0.55)),
-        customdata: links.map((l) => [l.carrier, l.loss ? 'Pertes calculées (entrées − sorties)' : `${STATUS_LABEL[l.status]}${l.meter ? ` · compteur ${l.meter}` : ''}`]),
+        customdata: links.map((l) => [
+          l.carrier,
+          l.loss ? 'Pertes calculées (entrées − sorties)' : `${STATUS_LABEL[l.status]}${l.meter ? ` · compteur ${l.meter}` : ''} · cliquer pour modifier`,
+          l.loss ? -1 : flowIndex.get(l) ?? -1,
+        ]),
         hovertemplate: '%{source.label} → %{target.label}<br>%{customdata[0]} · %{value}<br>%{customdata[1]}<extra></extra>',
       },
       textfont: { color: t.ink, size: 12 },
@@ -62,11 +72,12 @@ export function buildSankey(model: SiteModel, a: SiteAnalysis, opts: SankeyOptio
       data,
       layout: {
         title: {
-          text: `<b>Flux énergétiques — ${title}</b><br><span style="font-size:11px;color:${t.ink2}">Énergie achetée ${f(a.totals.purchased)} · usages finaux ${f(a.totals.final)} · pertes de transformation ${f(a.totals.losses)}</span>`,
+          text: `<b>Flux énergétiques — ${title}</b><br><span style="font-size:11px;color:${t.ink2}">Énergie achetée ${f(a.totals.purchased)} · usages finaux ${f(a.totals.final)} · pertes de transformation ${f(a.totals.losses)}${opts.hidden.length ? ` · masqué : ${opts.hidden.join(', ')}` : ''}</span>`,
           x: 0, xanchor: 'left', font: { size: 15, color: t.ink },
         },
-        margin: { l: 8, r: 8, t: 80, b: 40 },
-        annotations: legendAnnotations(shown.map((c) => ({ name: c, color: t.token(colors.get(c)!) })), t.ink2),
+        // À l'écran, la légende est une barre de filtres cliquable au-dessus du graphique ; à l'export, elle est dessinée.
+        margin: { l: 8, r: 8, t: 80, b: ctx.export ? 40 : 12 },
+        annotations: ctx.export ? legendAnnotations(shown.map((c) => ({ name: c, color: t.token(colors.get(c)!) })), t.ink2) : [],
       },
     };
   };

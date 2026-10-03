@@ -10,8 +10,9 @@ import { fileSafe } from '@/lib/download';
 import { useSiteModel } from '@/lib/site-store';
 import { IconAlert, IconInfo, IconWarn } from '../icons';
 import PlotlyChart, { exportChart } from '../charts/PlotlyChart';
-import { carrierColors } from './carriers';
 import { buildPurchaseBars, buildSankey, buildUsageBars, type SankeyOptions } from './charts';
+import { FlowEditor, NodeEditor } from './Editors';
+import Legend from './Legend';
 
 type Tab = 'sankey' | 'bilan' | 'donnees';
 const MWh = (j: number) => fmtNum(fromSI(j, 'energy', 'MWh'), 4);
@@ -103,15 +104,12 @@ function Table({ head, rows, numeric = [] }: { head: string[]; rows: ReactNode[]
   );
 }
 
-const StatusChip = ({ s }: { s: keyof typeof STATUS_LABEL }) => (
-  <span className={`inline-block border px-1.5 text-[11px] ${s === 'mesure' ? 'border-accent text-accent' : 'border-rule-strong text-ink-2'}`}>{STATUS_LABEL[s]}</span>
-);
-
 export default function SitePage() {
-  const [model, setModel, ready] = useSiteModel();
+  const { model, ready, replace: setModel, edit, undo, canUndo } = useSiteModel();
+  const [selectedFlow, setSelectedFlow] = useState<number | null>(null);
   const [importIssues, setImportIssues] = useState<Issue[]>([]);
   const [tab, setTab] = useState<Tab>('sankey');
-  const [opts, setOpts] = useState<SankeyOptions>({ unit: 'MWh', showLosses: true });
+  const [opts, setOpts] = useState<SankeyOptions>({ unit: 'MWh', hidden: [] });
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -146,6 +144,7 @@ export default function SitePage() {
       <button type="button" className="btn" onClick={() => writeSheets(modelToSheets(EXEMPLE_SITE), 'gabarit-modele-site.xlsx')}>Télécharger le gabarit Excel</button>
       {model && <button type="button" className="btn" onClick={() => writeSheets(modelToSheets(model), `modele-${base}.xlsx`)}>Exporter le modèle (Excel)</button>}
       <button type="button" className="btn" onClick={() => { setModel(structuredClone(EXEMPLE_SITE)); setImportIssues([]); }}>Charger l’exemple</button>
+      {model && <button type="button" className="btn" disabled={!canUndo} onClick={undo} title="Annuler la dernière modification">↶ Annuler</button>}
       {model && <button type="button" className="btn" onClick={() => { if (confirm('Effacer le modèle de site enregistré dans ce navigateur ?')) { setModel(null); setImportIssues([]); } }}>Vider</button>}
     </div>
   );
@@ -210,10 +209,6 @@ export default function SitePage() {
                     {['MWh', 'GWh', 'tep'].map((u) => <option key={u}>{u}</option>)}
                   </select>
                 </label>
-                <label className="flex items-center gap-2 text-[13px]">
-                  <input type="checkbox" className="h-4 w-4 accent-[var(--accent)]" checked={opts.showLosses} onChange={(e) => setOpts({ ...opts, showLosses: e.target.checked })} />
-                  Afficher les pertes de transformation
-                </label>
                 <div className="ml-auto flex gap-2">
                   <button type="button" className="btn" onClick={() => sankey && exportChart(sankey, 'png', `sankey-${base}`, { width: 1400, height: sankeyHeight + 80 })}>Exporter PNG</button>
                   <button type="button" className="btn" onClick={() => sankey && exportChart(sankey, 'svg', `sankey-${base}`, { width: 1400, height: sankeyHeight + 80 })}>Exporter SVG</button>
@@ -221,10 +216,31 @@ export default function SitePage() {
               </div>
               {analysis.hasCycle
                 ? <p className="p-4 text-[13px] text-err">Diagramme impossible : le modèle contient une boucle (voir Données & contrôles).</p>
-                : sankey && <PlotlyChart build={sankey} height={sankeyHeight} label={`Diagramme de Sankey des flux énergétiques de ${model.name}`} />}
+                : sankey && (
+                  <>
+                    <Legend analysis={analysis} hidden={opts.hidden} unit={opts.unit} onChange={(hidden) => setOpts({ ...opts, hidden })} />
+                    <PlotlyChart
+                      build={sankey} height={sankeyHeight} label={`Diagramme de Sankey des flux énergétiques de ${model.name}`}
+                      onClick={(p) => {
+                        const idx = Array.isArray(p.customdata) ? Number(p.customdata[2]) : -1;
+                        if (idx >= 0) setSelectedFlow(idx);
+                      }}
+                    />
+                  </>
+                )}
               <p className="mt-2 text-[12px] text-ink-3">
-                Épaisseur des bandes proportionnelle à l’énergie annuelle ; couleur = vecteur énergétique. Les pertes de transformation sont calculées (entrées − sorties de chaque transformation). Survolez une bande pour le détail ; les postes peuvent être déplacés à la souris (verticalement) pour démêler le diagramme. Les exports sont en thème clair, pour les rapports.
+                Épaisseur des bandes proportionnelle à l’énergie annuelle ; couleur = vecteur énergétique. Les pertes de transformation sont calculées (entrées − sorties de chaque transformation). Légende : un clic masque ou affiche une énergie, un double-clic l’isole. Cliquez sur une bande pour modifier le flux correspondant ci-dessous. Les postes se déplacent à la souris pour démêler le diagramme. Les exports reprennent l’affichage filtré, en thème clair.
               </p>
+            </section>
+          )}
+
+          {tab === 'sankey' && (
+            <section className="border bg-surface p-4">
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="eyebrow">Flux — modifiables</h2>
+                <p className="text-[12px] text-ink-3">Les modifications mettent à jour le diagramme immédiatement et sont enregistrées dans ce navigateur. Postes : onglet Données & contrôles.</p>
+              </div>
+              <FlowEditor model={model} edit={edit} selected={selectedFlow} onSelect={setSelectedFlow} />
             </section>
           )}
 
@@ -258,33 +274,17 @@ export default function SitePage() {
                 <Issues issues={analysis.issues} />
               </section>
               <section className="border bg-surface p-4">
-                <h2 className="eyebrow mb-2">Flux ({model.flows.length})</h2>
-                <FlowTable model={model} />
+                <h2 className="eyebrow mb-2">Postes ({model.nodes.length}) — modifiables</h2>
+                <NodeEditor model={model} edit={edit} />
               </section>
               <section className="border bg-surface p-4">
-                <h2 className="eyebrow mb-2">Postes ({model.nodes.length})</h2>
-                <Table head={['Identifiant', 'Libellé', 'Type', 'Zone']} rows={model.nodes.map((n) => [<span key="i" className="num">{n.id}</span>, n.label, KIND_LABEL[n.kind], n.zone ?? ''])} />
+                <h2 className="eyebrow mb-2">Flux ({model.flows.length}) — modifiables</h2>
+                <FlowEditor model={model} edit={edit} selected={selectedFlow} onSelect={setSelectedFlow} />
               </section>
             </div>
           )}
         </>
       )}
     </div>
-  );
-}
-
-function FlowTable({ model }: { model: SiteModel }) {
-  const colors = carrierColors([...new Set(model.flows.map((f) => f.carrier))]);
-  const label = (id: string) => model.nodes.find((n) => n.id === id)?.label ?? id;
-  return (
-    <Table
-      head={['De', 'Vers', 'Énergie', 'MWh/an', 'Statut', 'Compteur', 'Commentaire']}
-      numeric={[3]}
-      rows={model.flows.map((f) => [
-        label(f.from), label(f.to),
-        <span key="c" className="inline-flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-[2px]" style={{ background: `var(${colors.get(f.carrier)})` }} />{f.carrier}</span>,
-        MWh(f.value), <StatusChip key="s" s={f.status} />, f.meter ?? '', f.comment ?? '',
-      ])}
-    />
   );
 }

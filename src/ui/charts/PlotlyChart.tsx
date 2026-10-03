@@ -6,7 +6,10 @@ import type { Config, Data, Layout } from 'plotly.js';
 import { baseLayout, exportTheme, readTheme, type ChartTheme } from './theme';
 
 export type ChartSpec = { data: Data[]; layout?: Partial<Layout> };
-export type BuildChart = (t: ChartTheme) => ChartSpec;
+/** `ctx.export` : vrai pour l'image exportée (on peut y ajouter ce que l'interface affiche autrement, ex. la légende). */
+export type BuildChart = (t: ChartTheme, ctx: { export: boolean }) => ChartSpec;
+/** Point cliqué (premier point de l'événement plotly_click). */
+export type ChartClick = { customdata?: unknown; pointNumber?: number; label?: string };
 
 type PlotlyModule = typeof import('plotly.js');
 let plotlyPromise: Promise<PlotlyModule> | null = null;
@@ -46,7 +49,7 @@ function useThemeVersion(): number {
 export async function exportChart(build: BuildChart, format: 'png' | 'svg', filename: string, size: { width: number; height: number }) {
   const Plotly = await loadPlotly();
   const t = exportTheme();
-  const spec = build(t);
+  const spec = build(t, { export: true });
   const div = document.createElement('div');
   div.style.cssText = `position:fixed;left:-10000px;top:0;width:${size.width}px;height:${size.height}px`;
   document.body.appendChild(div);
@@ -59,11 +62,13 @@ export async function exportChart(build: BuildChart, format: 'png' | 'svg', file
   }
 }
 
-export default function PlotlyChart({ build, height = 420, label, exportName }: { build: BuildChart; height?: number; label: string; exportName?: string }) {
+export default function PlotlyChart({ build, height = 420, label, exportName, onClick }: { build: BuildChart; height?: number; label: string; exportName?: string; onClick?: (p: ChartClick) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const themeV = useThemeVersion();
+  const clickRef = useRef(onClick);
+  clickRef.current = onClick;
 
   useEffect(() => {
     let alive = true;
@@ -71,8 +76,14 @@ export default function PlotlyChart({ build, height = 420, label, exportName }: 
       .then((Plotly) => {
         if (!alive || !ref.current) return;
         const t = readTheme();
-        const spec = build(t);
-        return Plotly.react(ref.current, spec.data, merge(baseLayout(t), { height, ...spec.layout }), CONFIG).then(() => setLoading(false));
+        const spec = build(t, { export: false });
+        const el = ref.current;
+        return Plotly.react(el, spec.data, merge(baseLayout(t), { height, ...spec.layout }), CONFIG).then(() => {
+          setLoading(false);
+          const gd = el as unknown as { on?: (ev: string, fn: (e: { points?: ChartClick[] }) => void) => void; removeAllListeners?: (ev: string) => void };
+          gd.removeAllListeners?.('plotly_click');
+          gd.on?.('plotly_click', (e) => { const p = e.points?.[0]; if (p) clickRef.current?.(p); });
+        });
       })
       .catch((e) => alive && setError(e instanceof Error ? e.message : String(e)));
     return () => { alive = false; };
