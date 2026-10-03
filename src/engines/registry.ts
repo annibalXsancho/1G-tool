@@ -3,10 +3,12 @@
 import type { AnyCalculator, Category } from '@/core/types';
 import { puissanceFluide } from './puissance-fluide';
 import { proprietesVapeur } from './proprietes-vapeur';
+import { coutVapeur } from './cout-vapeur';
 
 export const calculators: AnyCalculator[] = [
   puissanceFluide,
   proprietesVapeur,
+  coutVapeur,
 ];
 
 export const byId = (id: string): AnyCalculator | undefined => calculators.find((c) => c.id === id);
