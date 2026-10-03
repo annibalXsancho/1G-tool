@@ -19,6 +19,12 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         >
           Modèle de site · Sankey · bilans
         </Link>
+        <Link
+          href="/comptage/" onClick={onNavigate} aria-current={path === '/comptage/' ? 'page' : undefined}
+          className={`block border-l-2 py-1.5 pl-3 text-[13px] leading-snug transition-colors ${path === '/comptage/' ? 'border-accent font-medium text-ink' : 'border-rule text-ink-2 hover:text-ink'}`}
+        >
+          Plans de comptage
+        </Link>
       </div>
       {CATEGORIES.map((cat) => {
         const tools = byCategory(cat.id);

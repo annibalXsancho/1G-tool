@@ -101,6 +101,9 @@
 }
 .print-only { display: none; }
 
+@page plan { size: A4 landscape; margin: 10mm; }
+.print-plan { page: plan; }
+
 @media print {
   @page { size: A4; margin: 16mm; }
   html, body { background: #fff !important; color: #000 !important; }

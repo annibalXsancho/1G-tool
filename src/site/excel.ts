@@ -6,8 +6,8 @@ import { fromSI, toSI, DIMENSIONS } from '@/core/units';
 import { emptyModel, KIND_LABEL, norm, STATUS_LABEL, type FlowStatus, type NodeKind, type SiteModel, type SiteNode } from './model';
 import type { Issue } from './analyse';
 
-export type Cell = string | number | boolean | Date | null | undefined;
-export type Sheet = { sheet: string; data: Cell[][] };
+import { findHeader, findSheet, matches, str, type Cell, type Sheet } from '@/core/sheet';
+export type { Cell, Sheet };
 
 const SHEETS = {
   site: ['site', 'informations', 'infos'],
@@ -15,7 +15,8 @@ const SHEETS = {
   flows: ['flux', 'flows', 'consommations', 'bilan'],
 };
 
-const COLS = {
+type ColKey = 'id' | 'label' | 'kind' | 'zone' | 'from' | 'to' | 'carrier' | 'value' | 'unit' | 'status' | 'meter' | 'comment';
+const COLS: Record<ColKey, string[]> = {
   id: ['identifiant', 'id', 'code', 'repere'],
   label: ['libelle', 'nom', 'designation', 'poste'],
   kind: ['type', 'categorie', 'nature'],
@@ -29,31 +30,6 @@ const COLS = {
   meter: ['compteur', 'point de comptage', 'repere compteur'],
   comment: ['commentaire', 'remarque', 'observations', 'note'],
 };
-
-/** Un en-tête correspond à un alias s'il lui est égal ou commence par lui suivi d'un espace ou d'une parenthèse. */
-function matches(header: string, aliases: string[]): boolean {
-  const h = norm(header);
-  return aliases.some((a) => h === a || h.startsWith(`${a} `) || h.startsWith(`${a}(`));
-}
-
-function findSheet(sheets: Sheet[], aliases: string[]): Sheet | undefined {
-  return sheets.find((s) => aliases.includes(norm(s.sheet)));
-}
-
-type Header = { row: number; col: Partial<Record<keyof typeof COLS, number>>; raw: string[] };
-
-function findHeader(data: Cell[][], required: (keyof typeof COLS)[]): Header | null {
-  for (let r = 0; r < Math.min(data.length, 15); r++) {
-    const raw = (data[r] ?? []).map((c) => String(c ?? ''));
-    const col: Header['col'] = {};
-    (Object.keys(COLS) as (keyof typeof COLS)[]).forEach((k) => {
-      const idx = raw.findIndex((h) => h && matches(h, COLS[k]));
-      if (idx >= 0 && col[k] === undefined) col[k] = idx;
-    });
-    if (required.every((k) => col[k] !== undefined)) return { row: r, col, raw };
-  }
-  return null;
-}
 
 const ENERGY_UNITS = Object.keys(DIMENSIONS.energy.units);
 function unitFrom(text: string): string | undefined {
@@ -77,8 +53,6 @@ function statusFrom(v: Cell): FlowStatus | undefined {
   return undefined;
 }
 
-const str = (c: Cell) => (c === null || c === undefined ? '' : c instanceof Date ? c.toISOString().slice(0, 10) : String(c).trim());
-
 export function parseWorkbook(sheets: Sheet[]): { model: SiteModel; issues: Issue[] } {
   const model = emptyModel();
   const issues: Issue[] = [];
@@ -99,7 +73,7 @@ export function parseWorkbook(sheets: Sheet[]): { model: SiteModel; issues: Issu
   const nodes = new Map<string, SiteNode>();
   const byLabel = new Map<string, string>();
   if (nodeSheet) {
-    const h = findHeader(nodeSheet.data, ['label']);
+    const h = findHeader<ColKey>(nodeSheet.data, COLS, ['label']);
     if (!h) issues.push({ level: 'erreur', sheet: nodeSheet.sheet, message: 'Colonne « Libellé » introuvable.' });
     else {
       for (let r = h.row + 1; r < nodeSheet.data.length; r++) {
@@ -123,7 +97,7 @@ export function parseWorkbook(sheets: Sheet[]): { model: SiteModel; issues: Issu
     issues.push({ level: 'erreur', message: 'Feuille « Flux » introuvable (colonnes attendues : De, Vers, Énergie, Quantité).' });
     return { model, issues };
   }
-  const h = findHeader(flowSheet.data, ['from', 'to', 'value']);
+  const h = findHeader<ColKey>(flowSheet.data, COLS, ['from', 'to', 'value']);
   if (!h) {
     issues.push({ level: 'erreur', sheet: flowSheet.sheet, message: 'En-têtes « De », « Vers » et « Quantité » introuvables dans les 15 premières lignes.' });
     return { model, issues };

@@ -8,6 +8,7 @@ import { EXEMPLE_SITE } from '@/site/exemple';
 import { KIND_LABEL, STATUS_LABEL, type SiteModel } from '@/site/model';
 import { fileSafe } from '@/lib/download';
 import { useSiteModel } from '@/lib/site-store';
+import { writeSheets } from '@/lib/xlsx';
 import { IconAlert, IconInfo, IconWarn } from '../icons';
 import PlotlyChart, { exportChart } from '../charts/PlotlyChart';
 import { buildPurchaseBars, buildSankey, buildUsageBars, type SankeyOptions } from './charts';
@@ -17,11 +18,6 @@ import Legend from './Legend';
 type Tab = 'sankey' | 'bilan' | 'donnees';
 const MWh = (j: number) => fmtNum(fromSI(j, 'energy', 'MWh'), 4);
 const MWhCell = (j: number) => Number(fromSI(j, 'energy', 'MWh').toPrecision(10));
-
-async function writeSheets(sheets: Sheet[], filename: string) {
-  const { default: writeExcelFile } = await import('write-excel-file/browser');
-  await writeExcelFile(sheets.map((s) => ({ sheet: s.sheet, data: s.data.map((r) => r.map((c) => (c === undefined ? null : c))) }))).toFile(filename);
-}
 
 function bilanSheets(model: SiteModel, a: SiteAnalysis): Sheet[] {
   const label = (id: string) => model.nodes.find((n) => n.id === id)?.label ?? 'Pertes de transformation';

@@ -18,6 +18,11 @@ Node est installé dans `~/.local/node` : préfixer par `export PATH=$HOME/.loca
   sur des feuilles déjà lues (`excel.ts`, pur). La lecture/écriture .xlsx (read-excel-file / write-excel-file) est
   dans `src/ui/site/`. Le modèle courant est conservé dans le localStorage ; le fichier
   Excel exporté sert de sauvegarde.
+- `src/metering/` : plans de comptage (pur) : `model.ts` (postes, compteurs, plans), `analyse.ts` (états mesuré / agrégé /
+  par différence / inconnu, couverture pondérée, contrôles, recommandations), `layout.ts` (mise en page automatique),
+  `excel.ts` (import/export multi-plans), `drawio.ts` (export diagrams.net), `edit.ts` (modifications pures). Le rendu
+  SVG est dans `src/ui/metering/PlanSvg.tsx` (variante « sheet » pour les exports et l'impression A4 paysage).
+- `src/lib/undo-store.ts` : stockage local + annulation, utilisé par le modèle de site et les plans de comptage.
 - `src/data/` : JSON datés et sourcés (`meta.source`, `meta.date`), typés dans `schema.ts`, vérifiés par `data.test.ts`.
 - `src/ui/`, `src/app/` : rendu générique. Aucune connaissance d'un calculateur particulier.
 
