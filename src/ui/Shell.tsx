@@ -37,6 +37,12 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         >
           Production et stockage d’ECS
         </Link>
+        <Link
+          href="/suivi/" onClick={onNavigate} aria-current={path === '/suivi/' ? 'page' : undefined}
+          className={`block border-l-2 py-1.5 pl-3 text-[13px] leading-snug transition-colors ${path === '/suivi/' ? 'border-accent font-medium text-ink' : 'border-rule text-ink-2 hover:text-ink'}`}
+        >
+          Signature énergétique · IPÉ · CUSUM
+        </Link>
       </div>
       {CATEGORIES.map((cat) => {
         const tools = byCategory(cat.id);

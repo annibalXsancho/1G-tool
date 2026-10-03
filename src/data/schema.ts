@@ -63,3 +63,10 @@ export type EcsFile = {
   reglementation: { stockageSeuil_L: number; stockageTmin_C: number; bouclesTmin_C: number; puisageTmax_C: number };
   eau: { cp_Wh_par_L_K: number };
 };
+
+export type SuiviFile = {
+  meta: DataMeta;
+  dju: { poidsDebut: number; poidsPente: number; baseDefaut_C: number };
+  seuils: { R2_min: number; CVRMSE_max_pct: number; NMBE_max_pct: number; t_min: number; facteurIncertitude: number; pointsMin: Record<'mois' | 'semaine' | 'jour' | 'brut', number> };
+  student: { dof: number[]; '80': number[]; '90': number[]; '95': number[]; infini: { '80': number; '90': number; '95': number } };
+};

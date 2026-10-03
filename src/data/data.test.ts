@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CombustiblesFile, EcsFile, ElectriqueFile, FluidesFile } from './schema';
+import type { CombustiblesFile, EcsFile, ElectriqueFile, FluidesFile, SuiviFile } from './schema';
 
 const files = import.meta.glob('./*.json', { eager: true, import: 'default' }) as Record<string, { meta?: unknown }>;
 
@@ -88,5 +88,16 @@ describe('fichiers JSON de src/data', () => {
     expect(f.stratification.min).toBeLessThan(f.stratification.defaut);
     expect(f.stratification.defaut).toBeLessThan(f.stratification.max);
     expect(f.eau.cp_Wh_par_L_K).toBeCloseTo(1.163, 3);
+  });
+  it('suivi.json : quantiles de Student décroissants, seuils plausibles', async () => {
+    const f = (await import('./suivi.json')).default as unknown as SuiviFile;
+    for (const k of ['80', '90', '95'] as const) {
+      expect(f.student[k].length).toBe(f.student.dof.length);
+      f.student[k].forEach((v, i) => { if (i > 0) expect(v, k).toBeLessThan(f.student[k][i - 1]); expect(v).toBeGreaterThan(f.student.infini[k]); });
+    }
+    expect(f.student['95'][9]).toBeCloseTo(2.228, 3);
+    expect(f.dju.poidsDebut + f.dju.poidsPente).toBeCloseTo(0.5, 12);
+    expect(f.seuils.R2_min).toBeGreaterThan(0.5); expect(f.seuils.R2_min).toBeLessThan(1);
+    expect(f.seuils.facteurIncertitude).toBeGreaterThanOrEqual(1);
   });
 });
