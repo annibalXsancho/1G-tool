@@ -59,7 +59,7 @@ export function costFormula(c: SteamCost, hSteam: number, i: CostInput): Formula
   return {
     label: 'Coût de production d’une tonne de vapeur',
     symbolic: 'c_v = \\dfrac{h_v - h_{alim}}{\\eta_{PCI}} \\times p_{PCI}',
-    substituted: `c_v = \\dfrac{${kJ(hSteam)} - ${kJ(c.hFeed)}}{${tex(i.rendement)}}\\ \\mathrm{kJ/kg} = ${tex(kWhPerT)}\\ \\mathrm{kWh_{PCI}/t} \;\\times ${tex(perMWh(c.pricePCI))}\\ \\mathrm{€/MWh} = ${tex(c.costPerKg * 1e3)}\\ \\mathrm{€/t}`,
+    substituted: `\\begin{aligned} c_v &= \\dfrac{${kJ(hSteam)} - ${kJ(c.hFeed)}}{${tex(i.rendement)}}\\ \\mathrm{kJ/kg} = ${tex(kWhPerT)}\\ \\mathrm{kWh_{PCI}/t} \\\\ &= ${tex(kWhPerT)} \\times ${tex(perMWh(c.pricePCI))}\\ \\text{€/MWh} \\div 1000 = ${tex(c.costPerKg * 1e3)}\\ \\text{€/t} \\end{aligned}`,
     legend: [
       { symbol: 'h_v', meaning: 'enthalpie de la vapeur produite', unit: 'kJ/kg' },
       { symbol: 'h_{alim}', meaning: 'enthalpie de l’eau d’alimentation', unit: 'kJ/kg' },

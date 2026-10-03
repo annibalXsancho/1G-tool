@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { calculators } from './registry';
 import { defaultRaw, parseInputs } from '@/core/form';
 import { CATEGORIES } from '@/core/categories';
+import katex from 'katex';
+
+// Les caractères Unicode hors police KaTeX (€, °) sont acceptés : ils s'affichent avec la police du texte.
+const renders = (latex: string) => katex.renderToString(latex, { throwOnError: true, strict: (code: string) => (['unknownSymbol', 'unicodeTextInMathMode', 'symbolNotInFont'].includes(code) ? 'ignore' : 'error') });
 
 describe('registre : tous les calculateurs avec leurs seules valeurs par défaut', () => {
   it('identifiants uniques et catégories connues', () => {
@@ -12,6 +16,9 @@ describe('registre : tous les calculateurs avec leurs seules valeurs par défaut
 
   for (const c of calculators) {
     describe(c.id, () => {
+      it('outils liés existants', () => {
+        for (const id of c.related ?? []) expect(calculators.some((x) => x.id === id), `${c.id} → ${id}`).toBe(true);
+      });
       it('métadonnées complètes', () => {
         expect(c.title && c.summary).toBeTruthy();
         expect(c.references.length).toBeGreaterThan(0);
@@ -30,7 +37,13 @@ describe('registre : tous les calculateurs avec leurs seules valeurs par défaut
         expect(r.main.length).toBeGreaterThan(0);
         expect(r.formulas.length).toBeGreaterThan(0);
         for (const q of [...r.main, ...r.intermediates]) expect(Number.isFinite(q.value)).toBe(true);
-        for (const f of r.formulas) expect(f.substituted).not.toMatch(/NaN|undefined|Infinity/);
+        for (const f of r.formulas) {
+          expect(f.substituted).not.toMatch(/NaN|undefined|Infinity/);
+          // Toute formule doit être du LaTeX valide pour KaTeX (sinon elle s'afficherait en rouge).
+          expect(() => renders(f.symbolic), f.symbolic).not.toThrow();
+          expect(() => renders(f.substituted), f.substituted).not.toThrow();
+          for (const l of f.legend ?? []) expect(() => renders(l.symbol), l.symbol).not.toThrow();
+        }
       });
     });
   }

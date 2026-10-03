@@ -23,6 +23,16 @@ Tout calculateur qui touche à l'eau ou à la vapeur passe par ce module, jamais
 | `steamForDuty` | débit de vapeur pour une puissance de chauffe (chaleur latente par défaut) |
 | `condensateReturnPower` | énergie des condensats renvoyés vs appoint |
 | `turbineExpansion` | détente avec rendement isentropique η_is |
+| `napierLeak` | fuite de vapeur par un orifice (Napier), écoulement critique |
+
+## `combustion.ts` : combustion et économie
+| Fonction | Règle |
+|---|---|
+| `co2PerJoulePCI` | facteur d'émission GIEC 2006 (combustibles.json) |
+| `priceOnPCI` | prix PCS → PCI : p_PCI = p_PCS / (PCI/PCS) |
+| `etaOnPCS` | η_PCS = η_PCI × PCI/PCS |
+| `siegertLoss` | pertes fumées : (T_f − T_a)(A2/(21 − O2) + B) |
+| `steamUnitCost` | énergie, coût et CO2 par kg de vapeur : (h_v − h_alim)/η × prix |
 
 Les erreurs d'entrée lèvent `RuleError` ; les calculateurs les convertissent en `Result` `ok: false`.
 

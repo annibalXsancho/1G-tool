@@ -1,4 +1,4 @@
-import { defineCalculator, type Quantity, type Warning } from '@/core/types';
+import { defineCalculator, type Formula, type Quantity, type Warning } from '@/core/types';
 import { fluides } from '@/data';
 import type { FluidEntry } from '@/data/schema';
 import { interpTable } from '@/core/interp';
@@ -73,7 +73,7 @@ export const puissanceFluide = defineCalculator<PuissanceFluideInput, PuissanceF
 
     let cp: number;
     let rho: number | undefined;
-    const formulas: { label: string; symbolic: string; substituted: string }[] = [];
+    const formulas: Formula[] = [];
 
     if (entry) {
       const c = property(entry, 'cp', Tm, i.pression);
@@ -130,6 +130,11 @@ export const puissanceFluide = defineCalculator<PuissanceFluideInput, PuissanceF
       formulas.push({
         label: isGas ? 'Masse volumique (gaz parfait) et débit massique' : 'Débit massique',
         symbolic: isGas ? '\\rho = \\dfrac{p}{r\\,T}, \\quad q_m = \\rho\\, q_v' : 'q_m = \\rho\\, q_v',
+        legend: [
+          { symbol: '\\rho', meaning: 'masse volumique à la température d’entrée', unit: 'kg/m³' },
+          { symbol: 'q_v', meaning: 'débit volumique', unit: 'm³/s' },
+          ...(isGas ? [{ symbol: 'r', meaning: 'constante spécifique du gaz R/M', unit: 'J/(kg·K)' }, { symbol: 'p', meaning: 'pression absolue', unit: 'Pa' }] : []),
+        ],
         substituted: isGas
           ? `\\rho = \\dfrac{${tex(i.pression)}}{${tex(entry!.R_specifique!)} \\times ${tex(i.tIn)}} = ${tex(rho!)}\\ \\mathrm{kg/m^3}, \\quad q_m = ${tex(rho!)} \\times ${tex(qv!, 5)} = ${tex(qm)}\\ \\mathrm{kg/s}`
           : `q_m = ${tex(rho!)} \\times ${tex(qv!, 5)} = ${tex(qm)}\\ \\mathrm{kg/s}`,
@@ -138,6 +143,11 @@ export const puissanceFluide = defineCalculator<PuissanceFluideInput, PuissanceF
     formulas.push({
       label: 'Puissance thermique',
       symbolic: 'P = q_m \\, c_p \\, \\Delta T',
+      legend: [
+        { symbol: 'q_m', meaning: 'débit massique', unit: 'kg/s' },
+        { symbol: 'c_p', meaning: 'chaleur massique à la température moyenne', unit: 'kJ/(kg·K)' },
+        { symbol: '\\Delta T', meaning: 'écart T sortie − T entrée', unit: 'K' },
+      ],
       substituted: `P = ${tex(qm)} \\times ${tex(cp / 1000)} \\times ${tex(dT)} = ${kW(P)}\\ \\mathrm{kW}`,
     });
 
@@ -150,12 +160,20 @@ export const puissanceFluide = defineCalculator<PuissanceFluideInput, PuissanceF
       { key: 'cp', label: 'Chaleur massique c_p (à T moyenne)', value: cp, dimension: 'specificHeat' },
       { key: 'E1h', label: 'Énergie échangée par heure', value: P * 3600, dimension: 'energy', unit: 'kWh' },
     ];
-    return { ok: true, main, intermediates, warnings, formulas, data: { P, qm, cp, rho, dT, Tm } };
+    const conclusion = `${fmtNum(qm * 3600, 3)} kg/h de ${entry ? entry.label.toLowerCase() : 'fluide'} ${dT >= 0 ? 'chauffé' : 'refroidi'} de ${fmtNum(i.tIn - K0, 3)} à ${fmtNum(i.tOut - K0, 3)} °C ${dT >= 0 ? 'reçoit' : 'cède'} ${fmtNum(Math.abs(P) / 1000, 3)} kW.`;
+    return { ok: true, main, intermediates, warnings, formulas, conclusion, data: { P, qm, cp, rho, dT, Tm } };
   },
   references: [
     { source: 'Bilan d’énergie sur un fluide sans changement de phase (Q̇ = ṁ·cp·ΔT)', section: 'Relation fondamentale de la thermodynamique appliquée, pas de norme associée' },
     { source: 'Incropera & DeWitt, Fundamentals of Heat and Mass Transfer', section: 'Annexe A, tables A.4 et A.6', note: 'TODO: source à vérifier (édition, numéro de table)' },
   ],
+  method: [
+    'Un fluide qui traverse un échangeur, une batterie ou un procédé sans changer d’état échange une puissance proportionnelle à son débit massique, à sa chaleur massique et à son écart de température.',
+    'La chaleur massique varie un peu avec la température : elle est lue dans une table de propriétés à la température moyenne entre entrée et sortie.',
+    'Si le débit est connu en volume, il est d’abord converti en débit massique avec la masse volumique à l’endroit de la mesure.',
+  ],
+  scope: 'Ne traite pas les changements de phase (condensation de vapeur, évaporation) : pour la vapeur saturée, utiliser les outils de la catégorie Vapeur.',
+  related: ['proprietes-vapeur'],
   assumptions: [
     'Régime permanent, pas de changement de phase, pas de pertes entre les deux points de mesure.',
     'cp évalué à la température moyenne (Tentrée + Tsortie)/2 par interpolation linéaire dans la table de src/data/fluides.json.',

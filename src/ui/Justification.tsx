@@ -11,15 +11,11 @@ export function FormulaStep({ f, n }: { f: Formula; n: number }) {
         <span className="num inline-flex h-5 min-w-5 items-center justify-center bg-ink px-1 text-[11px] text-bg">{n}</span>
         {f.label}
       </p>
-      <div className="grid gap-x-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-        <div>
-          <p className="text-[11px] text-ink-3">Formule</p>
-          <FormulaBlock latex={f.symbolic} />
-        </div>
-        <div>
-          <p className="text-[11px] text-ink-3">Application numérique</p>
-          <FormulaBlock latex={f.substituted} />
-        </div>
+      <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-x-3 border-l-2 border-rule pl-3">
+        <p className="text-[11px] text-ink-3">Formule</p>
+        <FormulaBlock latex={f.symbolic} />
+        <p className="text-[11px] text-ink-3">Application numérique</p>
+        <div className="bg-sunken px-2"><FormulaBlock latex={f.substituted} /></div>
       </div>
       {f.legend && f.legend.length > 0 && (
         <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[12px] text-ink-2 sm:grid-cols-[auto_1fr_auto_1fr]">
@@ -45,14 +41,14 @@ export default function Justification({ calc, result }: { calc: AnyCalculator; r
           <span className="num text-[13px] font-semibold text-accent">3</span>
           <h2 className="eyebrow">Justification · note de calcul</h2>
         </header>
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-          {calc.method && calc.method.length > 0 && (
-            <div className="border-b p-4 lg:border-b-0 lg:border-r">
-              <h3 className="mb-2 text-[13px] font-semibold">Principe du calcul</h3>
-              <div className="space-y-2 text-[13px] leading-relaxed text-ink-2">{calc.method.map((m, i) => <p key={i}>{m}</p>)}</div>
-            </div>
-          )}
-          <div className={`p-4 ${calc.method?.length ? '' : 'lg:col-span-2'}`}>
+        {calc.method && calc.method.length > 0 && (
+          <div className="border-b p-4">
+            <h3 className="mb-2 text-[13px] font-semibold">Principe du calcul</h3>
+            <div className="grid gap-x-6 gap-y-2 text-[13px] leading-relaxed text-ink-2 md:grid-cols-3">{calc.method.map((m, i) => <p key={i}>{m}</p>)}</div>
+          </div>
+        )}
+        <div>
+          <div className="p-4">
             <h3 className="mb-1 text-[13px] font-semibold">Étapes du calcul</h3>
             {result ? (
               <>
