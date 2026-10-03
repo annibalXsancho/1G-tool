@@ -5,7 +5,8 @@ export type Dimension =
   | 'power' | 'energy' | 'temperature' | 'temperatureDelta'
   | 'massFlow' | 'volFlow' | 'density' | 'specificHeat'
   | 'pressure' | 'length' | 'area' | 'velocity' | 'time'
-  | 'ratio' | 'heatTransfer' | 'conductivity' | 'cost';
+  | 'ratio' | 'heatTransfer' | 'conductivity' | 'cost'
+  | 'specificEnergy' | 'specificEntropy' | 'specificVolume';
 
 export type UnitDef = { factor: number; offset?: number };
 type DimDef = { si: string; display: string; units: Record<string, UnitDef> };
@@ -33,7 +34,14 @@ export const DIMENSIONS: Record<Dimension, DimDef> = {
   },
   density: { si: 'kg/m³', display: 'kg/m³', units: { 'kg/m³': { factor: 1 } } },
   specificHeat: { si: 'J/(kg·K)', display: 'kJ/(kg·K)', units: { 'J/(kg·K)': { factor: 1 }, 'kJ/(kg·K)': { factor: 1e3 } } },
-  pressure: { si: 'Pa', display: 'bar', units: { Pa: { factor: 1 }, kPa: { factor: 1e3 }, mbar: { factor: 1e2 }, bar: { factor: 1e5 }, MPa: { factor: 1e6 } } },
+  pressure: {
+    si: 'Pa', display: 'bar',
+    units: {
+      Pa: { factor: 1 }, kPa: { factor: 1e3 }, mbar: { factor: 1e2 }, bar: { factor: 1e5 }, MPa: { factor: 1e6 },
+      // bar relatif (manométrique) : pression absolue = pression relative + 1 atm normale (101 325 Pa, définition).
+      'bar(g)': { factor: 1e5, offset: 101325 },
+    },
+  },
   length: { si: 'm', display: 'm', units: { m: { factor: 1 }, mm: { factor: 1e-3 }, cm: { factor: 1e-2 } } },
   area: { si: 'm²', display: 'm²', units: { 'm²': { factor: 1 }, 'cm²': { factor: 1e-4 }, 'mm²': { factor: 1e-6 } } },
   velocity: { si: 'm/s', display: 'm/s', units: { 'm/s': { factor: 1 }, 'km/h': { factor: 1 / 3.6 } } },
@@ -41,6 +49,9 @@ export const DIMENSIONS: Record<Dimension, DimDef> = {
   ratio: { si: '-', display: '-', units: { '-': { factor: 1 }, '%': { factor: 0.01 } } },
   heatTransfer: { si: 'W/(m²·K)', display: 'W/(m²·K)', units: { 'W/(m²·K)': { factor: 1 } } },
   conductivity: { si: 'W/(m·K)', display: 'W/(m·K)', units: { 'W/(m·K)': { factor: 1 } } },
+  specificEnergy: { si: 'J/kg', display: 'kJ/kg', units: { 'J/kg': { factor: 1 }, 'kJ/kg': { factor: 1e3 }, 'MJ/kg': { factor: 1e6 }, 'kWh/t': { factor: 3600 } } },
+  specificEntropy: { si: 'J/(kg·K)', display: 'kJ/(kg·K)', units: { 'J/(kg·K)': { factor: 1 }, 'kJ/(kg·K)': { factor: 1e3 } } },
+  specificVolume: { si: 'm³/kg', display: 'm³/kg', units: { 'm³/kg': { factor: 1 }, 'L/kg': { factor: 1e-3 } } },
   cost: { si: '€', display: '€', units: { '€': { factor: 1 }, 'k€': { factor: 1e3 } } },
 };
 
