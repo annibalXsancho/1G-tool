@@ -11,6 +11,15 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const path = usePathname();
   return (
     <nav aria-label="Outils" className="flex flex-col gap-5">
+      <div>
+        <p className="eyebrow py-1">Site & livrables</p>
+        <Link
+          href="/site/" onClick={onNavigate} aria-current={path === '/site/' ? 'page' : undefined}
+          className={`block border-l-2 py-1.5 pl-3 text-[13px] leading-snug transition-colors ${path === '/site/' ? 'border-accent font-medium text-ink' : 'border-rule text-ink-2 hover:text-ink'}`}
+        >
+          Modèle de site · Sankey · bilans
+        </Link>
+      </div>
       {CATEGORIES.map((cat) => {
         const tools = byCategory(cat.id);
         return (

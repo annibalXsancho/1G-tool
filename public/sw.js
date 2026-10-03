@@ -15,6 +15,18 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  // Pages : réseau d'abord (version à jour), cache en secours hors ligne.
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy));
+        return res;
+      }).catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || caches.match('/'))),
+    );
+    return;
+  }
+  // Ressources versionnées (JS, CSS, polices) : cache d'abord.
   e.respondWith(
     caches.match(req, { ignoreSearch: true }).then((hit) => hit || fetch(req).then((res) => {
       const copy = res.clone();

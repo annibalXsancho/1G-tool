@@ -18,7 +18,7 @@ export const DIMENSIONS: Record<Dimension, DimDef> = {
     si: 'J', display: 'kWh',
     units: {
       J: { factor: 1 }, kJ: { factor: 1e3 }, MJ: { factor: 1e6 }, GJ: { factor: 1e9 },
-      kWh: { factor: 3.6e6 }, MWh: { factor: 3.6e9 },
+      kWh: { factor: 3.6e6 }, MWh: { factor: 3.6e9 }, GWh: { factor: 3.6e12 },
       // 1 tep = 41,868 GJ : convention internationale (10^7 kcal_IT, 1 kcal_IT = 4,1868 kJ).
       tep: { factor: 4.1868e10 },
       // 1 thermie = 1 Mcal. TODO: source à vérifier (4,1855 MJ si calorie à 15 °C ; 4,1868 MJ si calorie IT).
