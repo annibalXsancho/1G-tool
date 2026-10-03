@@ -20,12 +20,12 @@ export type Row = {
 
 export type Grain = 'brut' | 'jour' | 'semaine' | 'mois';
 export const GRAIN_LABEL: Record<Grain, string> = { brut: 'Périodes du fichier', jour: 'Jour', semaine: 'Semaine (lun. → dim.)', mois: 'Mois civil' };
-export type Regressor = 'dju' | 'djr' | 'x';
-export const REGRESSOR_LABEL: Record<Regressor, string> = { dju: 'DJU chauffage', djr: 'DJR climatisation', x: 'Variable libre (production…)' };
+export type Regressor = 'dju' | 'djr' | 'x' | 'we';
+export const REGRESSOR_LABEL: Record<Regressor, string> = { dju: 'DJU chauffage', djr: 'DJR climatisation', x: 'Variable libre (production…)', we: 'Part de jours de week-end' };
 export type IpeDenom = 'aucun' | 'jours' | 'dju' | 'x';
 export const IPE_LABEL: Record<IpeDenom, string> = { aucun: 'kWh par période', jours: 'kWh par jour', dju: 'kWh par DJU', x: 'kWh par unité de la variable libre' };
 
-export type Period = { id: string; start: string; days: number; kwh: number; dju: number; djr: number; x: number };
+export type Period = { id: string; start: string; days: number; kwh: number; dju: number; djr: number; x: number; /** Part de jours de week-end dans la période (0 à 1). */ we: number };
 
 export type Config = {
   grain: Grain;

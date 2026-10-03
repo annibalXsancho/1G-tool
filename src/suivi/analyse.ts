@@ -67,11 +67,15 @@ export type Analysis = {
   checks: Check[];
   formulas: Formula[];
   tCrit: number;
+  /** Autocorrélation d'ordre 1 des écarts de référence (0 à 0,95) et facteur d'incertitude qui en découle. */
+  autocorr: number;
+  factor: number;
   conclusion: string;
 };
 
 const T = suivi.seuils;
-const col = (p: Period, r: Regressor) => (r === 'dju' ? p.dju : r === 'djr' ? p.djr : p.x);
+const col = (p: Period, r: Regressor) => (r === 'dju' ? p.dju : r === 'djr' ? p.djr : r === 'we' ? p.we : p.x);
+const sym = (r: Regressor) => (r === 'dju' ? '\\text{DJU}' : r === 'djr' ? '\\text{DJR}' : r === 'we' ? 'W' : 'x');
 const inRange = (s: string, from: string, to: string) => (!from || s >= from) && (!to || s <= to);
 const f = (v: number, s = 4) => fmtNum(v, s);
 
@@ -79,10 +83,16 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
   const errors: string[] = [];
   if (periods.length === 0) return { errors: ['Aucune période exploitable : importez un relevé ou chargez l’exemple.'] };
   if (cfg.regressors.length === 0) errors.push('Choisissez au moins une variable explicative.');
-  if (cfg.regressors.length > 2) errors.push('Deux variables explicatives au plus.');
+  if (cfg.regressors.length > 3) errors.push('Trois variables explicatives au plus.');
   const refPeriods = periods.filter((p) => inRange(p.start, cfg.baselineFrom, cfg.baselineTo));
   if (errors.length) return { errors };
   const X = refPeriods.map((p) => cfg.regressors.map((r) => col(p, r)));
+  for (const r of cfg.regressors) {
+    const vals = refPeriods.map((p) => col(p, r));
+    if (vals.length > 1 && vals.every((v) => Math.abs(v - vals[0]) < 1e-12)) {
+      return { errors: [`La variable « ${REGRESSOR_LABEL[r]} » est constante sur la référence${r === 'we' ? ' (au grain semaine, chaque période compte 2 jours de week-end : choisissez le grain jour ou retirez-la)' : ''} : elle ne peut pas expliquer la consommation.`] };
+    }
+  }
   const fit = ols(X, refPeriods.map((p) => p.kwh), cfg.regressors.map((r) => REGRESSOR_LABEL[r]));
   if (!fit) {
     return { errors: [`La situation de référence compte ${refPeriods.length} période(s) : il en faut au moins ${cfg.regressors.length + 2} et des valeurs de variables non toutes identiques.`] };
@@ -101,6 +111,12 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
   const rl = lines.filter((l) => l.role === 'reference');
 
   // Économies évitées et incertitude (ASHRAE Guideline 14 annexe B, formule de la fraction d'économie).
+  // Autocorrélation d'ordre 1 des écarts de référence (périodes consécutives) : des écarts corrélés rendent la somme sur m périodes
+  // plus variable que m écarts indépendants, d'un facteur voisin de √((1+ρ)/(1−ρ)) (processus AR(1)).
+  const resRef = rl.map((l) => l.residual);
+  const num = resRef.slice(1).reduce((s, v, i) => s + v * resRef[i], 0); const den = resRef.reduce((s, v) => s + v * v, 0);
+  const autocorr = den > 0 ? Math.min(0.95, Math.max(0, num / den)) : 0;
+  const factor = Math.max(T.facteurIncertitude, Math.sqrt((1 + autocorr) / (1 - autocorr)));
   const tc = tCritical(fit.dof, cfg.confidence);
   let savings: Savings | null = null;
   if (sl.length > 0) {
@@ -108,7 +124,7 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
     const measured = sl.reduce((s, l) => s + l.period.kwh, 0);
     const total = expected - measured;
     const m = sl.length;
-    const U = T.facteurIncertitude * tc * fit.rmse * Math.sqrt(m * (1 + 2 / fit.n));
+    const U = factor * tc * fit.rmse * Math.sqrt(m * (1 + 2 / fit.n));
     savings = { m, expected, measured, total, pct: expected !== 0 ? (total / expected) * 100 : NaN, U, Urel: total !== 0 ? Math.abs(U / total) : Infinity, significant: Math.abs(total) > U };
   }
 
@@ -125,12 +141,13 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
   // Normalisation à des conditions annuelles typiques (IPMVP : économies « normalisées »).
   const ppy = cfg.grain === 'brut' ? cfg.periodsPerYear : { jour: 365.25, semaine: 365.25 / 7, mois: 12 }[cfg.grain];
   const typical = (r: Regressor): number => {
+    if (r === 'we') return (2 / 7) * ppy; // un jour sur 3,5 est un jour de week-end, en moyenne
     const given = r === 'dju' ? cfg.djuTypique : r === 'djr' ? cfg.djrTypique : cfg.xTypique;
     if (given !== undefined && Number.isFinite(given)) return given;
     return (refPeriods.reduce((s, p) => s + col(p, r), 0) / refPeriods.length) * ppy; // climat de la référence, annualisé
   };
   const annual = (fi: Fit) => fi.coef[0] * ppy + cfg.regressors.reduce((s, r, j) => s + fi.coef[j + 1] * typical(r), 0);
-  const usingGiven = cfg.regressors.every((r) => (r === 'dju' ? cfg.djuTypique : r === 'djr' ? cfg.djrTypique : cfg.xTypique) !== undefined);
+  const usingGiven = cfg.regressors.filter((r) => r !== 'we').every((r) => (r === 'dju' ? cfg.djuTypique : r === 'djr' ? cfg.djrTypique : cfg.xTypique) !== undefined);
   let normalised: Normalised | null = { reference: annual(fit), suivi: null, saving: null, ppy, basis: usingGiven ? 'conditions typiques saisies' : 'conditions moyennes de la période de référence' };
   const suiviPeriods = sl.map((l) => l.period);
   if (suiviPeriods.length >= cfg.regressors.length + 3) {
@@ -140,8 +157,9 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
 
   // Contrôles de qualité du modèle.
   const talon = fit.coef[0] * fit.n;
-  const climatique = refPeriods.reduce((s, p) => s + cfg.regressors.reduce((t, r, j) => t + fit.coef[j + 1] * col(p, r), 0), 0);
-  const parts = { climatique, talon, part: climatique + talon !== 0 ? (climatique / (climatique + talon)) * 100 : NaN };
+  const climatique = refPeriods.reduce((s, p) => s + cfg.regressors.reduce((t, r, j) => t + (r === 'dju' || r === 'djr' ? fit.coef[j + 1] * col(p, r) : 0), 0), 0);
+  const total = refPeriods.reduce((s, p) => s + p.kwh, 0);
+  const parts = { climatique, talon, part: total !== 0 ? (climatique / total) * 100 : NaN };
 
   const checks: Check[] = [];
   const minN = T.pointsMin[cfg.grain];
@@ -160,12 +178,14 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
   cfg.regressors.forEach((r, j) => {
     const t = fit.t[j + 1]; const b = fit.coef[j + 1];
     const phys = (r === 'dju' || r === 'djr' || r === 'x') && b < 0;
+    if (r === 'we') { checks.push(Math.abs(t) >= T.t_min ? { id: 't-we', label: `Significativité de ${REGRESSOR_LABEL[r]}`, level: 'ok', detail: `t = ${f(t, 3)} ≥ ${T.t_min} : le week-end change la consommation de ${f(b)} kWh par période entièrement en week-end.` } : { id: 't-we', label: `Significativité de ${REGRESSOR_LABEL[r]}`, level: 'warn', detail: `t = ${f(t, 3)} < ${T.t_min} : pas d’effet week-end démontré.` }); return; }
     checks.push(phys
       ? { id: `sign-${r}`, label: `Sens de ${REGRESSOR_LABEL[r]}`, level: 'ko', detail: `Coefficient négatif (${f(b)} kWh par unité) : plus de ${REGRESSOR_LABEL[r].toLowerCase()}, moins de consommation. Le sens ou la variable choisie n’est pas le bon.` }
       : Math.abs(t) >= T.t_min
         ? { id: `t-${r}`, label: `Significativité de ${REGRESSOR_LABEL[r]}`, level: 'ok', detail: `t = ${f(t, 3)} ≥ ${T.t_min} : le coefficient (${f(b)} kWh par unité) est distinct de zéro.` }
         : { id: `t-${r}`, label: `Significativité de ${REGRESSOR_LABEL[r]}`, level: 'warn', detail: `t = ${f(t, 3)} < ${T.t_min} : le coefficient n’est pas distinct de zéro, la variable n’apporte rien de démontré.` });
   });
+  if (autocorr > 0.4) checks.push({ id: 'autocorr', label: 'Autocorrélation des écarts', level: 'warn', detail: `ρ = ${f(autocorr, 3)} : les écarts successifs se ressemblent, l’incertitude sur les économies est majorée d’un facteur ${f(factor, 3)}. Un grain plus gros (semaine, mois) ou une variable manquante réduit ce phénomène.` });
   if (sl.length === 0) checks.push({ id: 'suivi', label: 'Période de suivi', level: 'warn', detail: 'Aucune période de suivi : renseignez ses dates pour obtenir les économies, le CUSUM et l’IPÉ.' });
   else if (savings) checks.push(savings.significant
     ? { id: 'sig', label: 'Économie supérieure à l’incertitude', level: 'ok', detail: `Économie ${f(savings.total)} kWh > incertitude ±${f(savings.U)} kWh (confiance ${Math.round(cfg.confidence * 100)} %).` }
@@ -173,8 +193,8 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
   if (periods.length < 3) checks.push({ id: 'pts', label: 'Données', level: 'ko', detail: 'Trop peu de périodes.' });
 
   const nv = cfg.regressors.length;
-  const eqSym = `E = a${cfg.regressors.map((r, j) => ` + b_${j + 1}\\,${r === 'dju' ? 'DJU' : r === 'djr' ? 'DJR' : 'x'}`).join('')}`;
-  const eqNum = `E = ${tex(fit.coef[0], 4)}${cfg.regressors.map((r, j) => ` ${fit.coef[j + 1] < 0 ? '-' : '+'} ${tex(Math.abs(fit.coef[j + 1]), 4)}\\times ${r === 'dju' ? '\\text{DJU}' : r === 'djr' ? '\\text{DJR}' : 'x'}`).join('')}`;
+  const eqSym = `E = a${cfg.regressors.map((r, j) => ` + b_${j + 1}\\,${r === 'dju' ? 'DJU' : r === 'djr' ? 'DJR' : r === 'we' ? 'W' : 'x'}`).join('')}`;
+  const eqNum = `E = ${tex(fit.coef[0], 4)}${cfg.regressors.map((r, j) => ` ${fit.coef[j + 1] < 0 ? '-' : '+'} ${tex(Math.abs(fit.coef[j + 1]), 4)}\\times ${sym(r)}`).join('')}`;
   const formulas: Formula[] = [
     {
       label: 'Degrés-jours unifiés d’une journée (méthode Costic)',
@@ -207,10 +227,10 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
       note: 'IPMVP option C : économies évitées, dans les conditions réelles de la période de suivi.',
     }, {
       label: 'Incertitude sur les économies',
-      symbolic: 'U = 1{,}26\; t_{\\alpha,\\,n-p}\; RMSE\;\\sqrt{m\\left(1 + \\dfrac{2}{n}\\right)}',
-      substituted: `U = 1{,}26 \\times ${tex(tc, 4)} \\times ${tex(fit.rmse, 4)} \\times \\sqrt{${savings.m}\\left(1 + \\tfrac{2}{${fit.n}}\\right)} = ${tex(savings.U, 4)}\\ \\text{kWh}`,
-      legend: [{ symbol: 'm', meaning: 'nombre de périodes de suivi' }, { symbol: 'n', meaning: 'nombre de périodes de référence' }, { symbol: 't_{\\alpha,n-p}', meaning: `quantile de Student à ${Math.round(cfg.confidence * 100)} %` }],
-      note: 'Le facteur 1,26 corrige l’autocorrélation des résidus mensuels (usage de l’ASHRAE Guideline 14, annexe B, pour des données mensuelles). TODO: source à vérifier ; pour des données plus fines ce facteur est à revoir.',
+      symbolic: 'U = F\\; t_{\\alpha,\\,n-p}\\; RMSE\\;\\sqrt{m\\left(1 + \\dfrac{2}{n}\\right)} \\qquad F = \\max\\left(1{,}26;\\ \\sqrt{\\dfrac{1+\\rho}{1-\\rho}}\\right)',
+      substituted: `\\rho = ${tex(autocorr, 3)} \\Rightarrow F = ${tex(factor, 3)} \\qquad U = ${tex(factor, 3)} \\times ${tex(tc, 4)} \\times ${tex(fit.rmse, 4)} \\times \\sqrt{${savings.m}\\left(1 + \\tfrac{2}{${fit.n}}\\right)} = ${tex(savings.U, 4)}\\ \\text{kWh}`,
+      legend: [{ symbol: 'm', meaning: 'nombre de périodes de suivi' }, { symbol: 'n', meaning: 'nombre de périodes de référence' }, { symbol: 't_{\\alpha,n-p}', meaning: `quantile de Student à ${Math.round(cfg.confidence * 100)} %` }, { symbol: '\\rho', meaning: 'autocorrélation d’ordre 1 des écarts de la référence' }],
+      note: 'Le facteur 1,26 est l’usage de l’ASHRAE Guideline 14 (annexe B) pour des données mensuelles ; au-delà, on retient le facteur √((1+ρ)/(1−ρ)) de l’autocorrélation mesurée, ce qui majore l’incertitude des pas fins (jour, semaine). TODO: source à vérifier.',
     }, {
       label: 'CUSUM',
       symbolic: 'S_k = \\sum_{i \\le k} \\left(\\hat E_i - E_i\\right)',
@@ -233,7 +253,7 @@ export function analyse(periods: Period[], cfg: Config): Analysis | { errors: st
     ? `Sur ${savings.m} période(s) de suivi, la consommation est de ${f(savings.measured)} kWh pour ${f(savings.expected)} kWh attendus : ${savings.total >= 0 ? 'économie' : 'surconsommation'} de ${f(Math.abs(savings.total))} kWh (${f(Math.abs(savings.pct), 3)} %), ±${f(savings.U)} kWh à ${Math.round(cfg.confidence * 100)} % de confiance${savings.significant ? '' : ' : écart non démontré'}.`
     : `Modèle de référence : ${f(fit.coef[0])} kWh de talon par période${nv ? ` et ${fit.coef.slice(1).map((c, j) => `${f(c)} kWh par ${REGRESSOR_LABEL[cfg.regressors[j]].toLowerCase()}`).join(', ')}` : ''} (R² = ${f(fit.r2, 3)}).`;
 
-  return { regressors: cfg.regressors, fit, lines, referenceN: rl.length, suiviN: sl.length, savings, ipe, normalised, parts, checks, formulas, tCrit: tc, conclusion };
+  return { regressors: cfg.regressors, fit, lines, referenceN: rl.length, suiviN: sl.length, savings, ipe, normalised, parts, checks, formulas, tCrit: tc, autocorr, factor, conclusion };
 }
 
 export const isAnalysis = (a: Analysis | { errors: string[] }): a is Analysis => 'fit' in a;
@@ -242,9 +262,9 @@ export const isAnalysis = (a: Analysis | { errors: string[] }): a is Analysis =>
 export function suggestRegressors(periods: Period[], cfg: Config): Regressor[] {
   const refP = periods.filter((p) => inRange(p.start, cfg.baselineFrom, cfg.baselineTo));
   let best: { r: Regressor[]; r2: number } | null = null;
-  for (const set of [['dju'], ['djr'], ['dju', 'djr']] as Regressor[][]) {
+  for (const set of [['dju'], ['djr'], ['dju', 'djr'], ['dju', 'we'], ['djr', 'we'], ['dju', 'djr', 'we']] as Regressor[][]) {
     const fit = ols(refP.map((p) => set.map((r) => col(p, r))), refP.map((p) => p.kwh), set);
-    if (fit && fit.coef.slice(1).every((c) => c > 0)) {
+    if (fit && fit.coef.slice(1).every((c, j) => set[j] === 'we' || c > 0)) {
       const adj = 1 - (1 - fit.r2) * ((fit.n - 1) / fit.dof); // R² ajusté : ne récompense pas une variable de plus
       if (!best || adj > best.r2) best = { r: set, r2: adj };
     }

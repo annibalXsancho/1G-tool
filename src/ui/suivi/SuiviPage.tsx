@@ -139,7 +139,7 @@ export default function SuiviPage() {
   const toggleReg = (r: Regressor) => {
     const has = cfg.regressors.includes(r);
     const next = has ? cfg.regressors.filter((x) => x !== r) : [...cfg.regressors, r];
-    if (next.length >= 1 && next.length <= 2) setCfg({ regressors: next });
+    if (next.length >= 1 && next.length <= 3) setCfg({ regressors: next });
   };
 
   return (
@@ -197,7 +197,7 @@ export default function SuiviPage() {
             </div>
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               <fieldset className="border bg-bg p-3">
-                <legend className="px-1 text-[12px] text-ink-2">Variables explicatives (1 ou 2)</legend>
+                <legend className="px-1 text-[12px] text-ink-2">Variables explicatives (1 à 3)</legend>
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
                   {(Object.keys(REGRESSOR_LABEL) as Regressor[]).map((r) => (
                     <label key={r} className="flex items-center gap-2 text-[13px]"><input type="checkbox" className="h-4 w-4 accent-[var(--accent)]" checked={cfg.regressors.includes(r)} onChange={() => toggleReg(r)} />{REGRESSOR_LABEL[r]}</label>
@@ -242,7 +242,7 @@ export default function SuiviPage() {
               <Section n={2} title="Synthèse">
                 <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
                   <Stat strong label="Talon" value={f(a.fit.coef[0])} unit="kWh/période" hint={`≈ ${f(a.fit.coef[0] / Math.max(1, a.lines.filter((l) => l.role === 'reference').reduce((t, l) => t + l.period.days, 0) / Math.max(1, a.referenceN)))} kWh/jour`} />
-                  {a.regressors.map((r, j) => <Stat key={r} strong label={`Sensibilité ${r === 'dju' ? 'DJU' : r === 'djr' ? 'DJR' : 'variable'}`} value={f(a.fit.coef[j + 1])} unit="kWh/unité" hint={`t = ${f(a.fit.t[j + 1], 3)}`} />)}
+                  {a.regressors.map((r, j) => <Stat key={r} strong label={`${r === 'we' ? 'Effet week-end' : `Sensibilité ${r === 'dju' ? 'DJU' : r === 'djr' ? 'DJR' : 'variable'}`}`} value={f(a.fit.coef[j + 1])} unit="kWh/unité" hint={`t = ${f(a.fit.t[j + 1], 3)}`} />)}
                   <Stat label="Part climatique" value={f(a.parts.part, 3)} unit="%" hint={`talon : ${f(a.parts.talon)} kWh (ECS, process, veille)`} />
                   <Stat label="R²" value={f(a.fit.r2, 3)} hint={`CV(RMSE) ${f(a.fit.cvrmse * 100, 3)} % · n = ${a.fit.n}`} />
                   {a.savings && <Stat strong label="Économie évitée" value={f(a.savings.total)} unit="kWh" hint={`${pct(a.savings.pct)} · ±${f(a.savings.U)} kWh (${Math.round(cfg.confidence * 100)} %)`} />}

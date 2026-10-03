@@ -114,7 +114,15 @@ describe('analyse sur l’exemple (vérité connue : 350 kWh/DJU, −9 % depuis 
     expect(a.normalised!.suivi).not.toBeNull();
     expect(a.normalised!.saving!).toBeGreaterThan(0);
   });
-  it('suggère DJU pour un site chauffé', () => expect(suggestRegressors(periods, doc.config)).toEqual(['dju']));
+  it('suggère DJU (avec ou sans effet week-end) pour un site chauffé, jamais DJR seul', () => {
+    const r = suggestRegressors(periods, doc.config);
+    expect(r).toContain('dju'); expect(r).not.toContain('djr');
+  });
+  it('variable week-end : part de jours de week-end exacte', () => {
+    expect(periods[0].we).toBeCloseTo(8 / 31, 12); // janvier 2025 : 4 samedis + 4 dimanches
+    const j = toPeriods(doc.rows, { ...doc.config, grain: 'jour' });
+    expect(j.filter((p) => p.we === 1).length).toBeGreaterThan(150);
+  });
   it('toutes les formules sont produites', () => { if (isAnalysis(a)) expect(a.formulas.length).toBeGreaterThanOrEqual(7); });
 });
 
@@ -205,5 +213,33 @@ describe('données réelles des TD du cours (Saint-Étienne)', () => {
     expect(a.fit.coef[0]).toBeGreaterThan(1000); expect(a.fit.coef[1]).toBeGreaterThan(100); expect(a.fit.coef[1]).toBeLessThan(150);
     expect(a.fit.r2).toBeGreaterThan(0.8);
     expect(a.checks.find((c) => c.id === 'cv')!.level).toBe('warn'); // CV(RMSE) ≈ 40 % : dispersion forte, dite
+  });
+});
+
+describe('incertitude : facteur d’autocorrélation', () => {
+  const lcg = (seed: number) => { let x = seed >>> 0; return () => { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; return x / 4294967296 - 0.5; }; };
+  const make = (rho: number): Row[] => {
+    const r = lcg(99); let e = 0;
+    return Array.from({ length: 160 }, (_, i) => {
+      e = rho * e + r() * 60;
+      const d = new Date(2025, 0, 1 + i, 12);
+      return { date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`, kwh: 1000 + 50 * ((i * 13) % 17) + e, dju: (i * 13) % 17 };
+    });
+  };
+  const cfg = (rows: Row[]): Config => ({ ...defaultConfig(), grain: 'brut', baselineFrom: rows[0].date, baselineTo: rows[119].date, reportFrom: rows[120].date, reportTo: rows[159].date });
+  it('écarts indépendants : facteur plancher 1,26', () => {
+    const rows = make(0); const c = cfg(rows);
+    const a = analyse(toPeriods(rows, c), c);
+    if (!isAnalysis(a)) throw new Error('analyse');
+    expect(a.autocorr).toBeLessThan(0.3); expect(a.factor).toBeCloseTo(1.26, 12);
+  });
+  it('écarts fortement autocorrélés (ρ ≈ 0,8) : facteur √((1+ρ)/(1−ρ)) et incertitude majorée', () => {
+    const rows = make(0.8); const c = cfg(rows);
+    const a = analyse(toPeriods(rows, c), c);
+    if (!isAnalysis(a)) throw new Error('analyse');
+    expect(a.autocorr).toBeGreaterThan(0.6); expect(a.autocorr).toBeLessThan(0.95);
+    expect(a.factor).toBeCloseTo(Math.sqrt((1 + a.autocorr) / (1 - a.autocorr)), 12); expect(a.factor).toBeGreaterThan(2);
+    expect(a.savings!.U).toBeCloseTo(a.factor * a.tCrit * a.fit.rmse * Math.sqrt(a.suiviN * (1 + 2 / a.fit.n)), 6);
+    expect(a.checks.some((c2) => c2.id === 'autocorr')).toBe(true);
   });
 });

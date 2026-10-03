@@ -43,6 +43,12 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         >
           Signature énergétique · IPÉ · CUSUM
         </Link>
+        <Link
+          href="/monitoring/" onClick={onNavigate} aria-current={path === '/monitoring/' ? 'page' : undefined}
+          className={`block border-l-2 py-1.5 pl-3 text-[13px] leading-snug transition-colors ${path === '/monitoring/' ? 'border-accent font-medium text-ink' : 'border-rule text-ink-2 hover:text-ink'}`}
+        >
+          Monitoring · simulation IPMVP
+        </Link>
       </div>
       {CATEGORIES.map((cat) => {
         const tools = byCategory(cat.id);

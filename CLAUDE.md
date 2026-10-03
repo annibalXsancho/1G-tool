@@ -30,6 +30,13 @@ Node est installé dans `~/.local/node` : préfixer par `export PATH=$HOME/.loca
   (jour → semaine/mois, périodes incomplètes écartées), `analyse.ts` (signature, économies IPMVP option C avec
   incertitude, CUSUM, IPÉ, normalisation, contrôles), `parse.ts` (CSV/Excel), `exemple.ts` (jeu déterministe). DJU et ratio kWh/DJU
   conformes au cours « Optimisation énergétique des bâtiments » (`1G etudes/`), exemples tirés de ses TD. UI : `src/ui/suivi/`, route `/suivi/`.
+- `src/monitoring/` : monitoring de courbes de charge (pur), porté du tableau de bord energy-dashboard : `read.ts` (CSV/Excel,
+  séparateur, unité W/kW/MW, multi-compteurs, températures), `series.ts` (pas, agrégation, monotone, carte de chaleur, profils,
+  énergie journalière), `kpis.ts` (énergie, pointe, facteur de charge, talon P5, part hors occupation…), `tariff.ts`,
+  `quality.ts`, `ipmvp.ts` (**simulation IPMVP** : action connue appliquée à la courbe, options A/B/C comparées à la vérité,
+  puissance de détection par Monte-Carlo, durée de suivi nécessaire, cartes de contrôle Shewhart + CUSUM), `exemple.ts`.
+  Réutilise `src/suivi/` pour le modèle. UI : `src/ui/monitoring/`, route `/monitoring/`. Seul appel réseau, explicite et
+  déclenché par l'utilisateur : `src/lib/meteo.ts` (open-meteo, commune et dates uniquement). `src/ui/common.tsx` : Section, Stat, CheckList, Tabs.
 - `src/lib/undo-store.ts` : stockage local + annulation, utilisé par le modèle de site et les plans de comptage.
 - `src/data/` : JSON datés et sourcés (`meta.source`, `meta.date`), typés dans `schema.ts`, vérifiés par `data.test.ts`.
 - `src/ui/`, `src/app/` : rendu générique. Aucune connaissance d'un calculateur particulier.

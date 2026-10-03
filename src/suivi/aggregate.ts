@@ -11,6 +11,15 @@ export const parseDay = (s: string) => { const [y, m, d] = s.slice(0, 10).split(
 export const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n, 12);
 export const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
 
+/** Part de jours de week-end parmi les `days` jours qui commencent à `start` (AAAA-MM-JJ). */
+export function weekendShare(start: string, days: number): number {
+  const n = Math.max(1, Math.round(days));
+  const d0 = parseDay(start);
+  let we = 0;
+  for (let i = 0; i < n; i++) { const g = addDays(d0, i).getDay(); if (g === 0 || g === 6) we++; }
+  return we / n;
+}
+
 export function rowDegreeDays(r: Row, base: number): { dju: number; djr: number } {
   const have = Number.isFinite(r.tmin) && Number.isFinite(r.tmax);
   return {
@@ -31,7 +40,7 @@ export function toPeriods(rows: Row[], cfg: Pick<Config, 'grain' | 'base' | 'sai
   // Hors saison de chauffe, les DJU de la journée sont comptés nuls (le chauffage est arrêté), avant toute agrégation.
   const degreeDays = (r: Row) => { const d = rowDegreeDays(r, cfg.base); return inSeason(parseDay(r.date).getMonth() + 1, cfg.saison) ? d : { ...d, dju: 0 }; };
   if (cfg.grain === 'brut' || cfg.grain === 'jour') {
-    return sorted.map((r) => ({ id: r.date.slice(0, 10), start: r.date.slice(0, 10), days: r.jours ?? 1, kwh: r.kwh, ...degreeDays(r), x: r.x ?? 0 }));
+    return sorted.map((r) => ({ id: r.date.slice(0, 10), start: r.date.slice(0, 10), days: r.jours ?? 1, kwh: r.kwh, ...degreeDays(r), x: r.x ?? 0, we: weekendShare(r.date, r.jours ?? 1) }));
   }
   const groups = new Map<string, Period & { n: number }>();
   for (const r of sorted) {
@@ -42,7 +51,7 @@ export function toPeriods(rows: Row[], cfg: Pick<Config, 'grain' | 'base' | 'sai
       key = start = isoDate(monday);
     }
     let g = groups.get(key);
-    if (!g) { g = { id: key, start, days: 0, kwh: 0, dju: 0, djr: 0, x: 0, n: 0 }; groups.set(key, g); }
+    if (!g) { g = { id: key, start, days: 0, kwh: 0, dju: 0, djr: 0, x: 0, we: 0, n: 0 }; groups.set(key, g); }
     const dd = degreeDays(r);
     g.kwh += r.kwh; g.dju += dd.dju; g.djr += dd.djr; g.x += r.x ?? 0; g.n += 1; g.days += r.jours ?? 1;
   }
@@ -52,7 +61,7 @@ export function toPeriods(rows: Row[], cfg: Pick<Config, 'grain' | 'base' | 'sai
     const expected = cfg.grain === 'mois' ? daysInMonth(d.getFullYear(), d.getMonth() + 1) : 7;
     if (g.n < expected) continue; // période incomplète
     const { n: _n, ...p } = g; void _n;
-    out.push(p);
+    out.push({ ...p, we: weekendShare(p.start, p.days) });
   }
   return out.sort((a, b) => a.start.localeCompare(b.start));
 }
