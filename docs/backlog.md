@@ -1,5 +1,7 @@
 # Backlog
 
+L'ordre de réalisation (sprints, critères d'acceptation, risques) est dans `docs/roadmap.md`.
+
 Priorités : P1 = valeur directe en audit / management de l'énergie, P2 = utile, P3 = plus tard. Taille : S < 1 j, M 1–3 j, L > 3 j.
 
 ## Reporté volontairement
