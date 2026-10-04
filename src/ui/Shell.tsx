@@ -49,6 +49,12 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         >
           Monitoring · simulation IPMVP
         </Link>
+        <Link
+          href="/pertes-de-charge/" onClick={onNavigate} aria-current={path === '/pertes-de-charge/' ? 'page' : undefined}
+          className={`block border-l-2 py-1.5 pl-3 text-[13px] leading-snug transition-colors ${path === '/pertes-de-charge/' ? 'border-accent font-medium text-ink' : 'border-rule text-ink-2 hover:text-ink'}`}
+        >
+          Pertes de charge
+        </Link>
       </div>
       {CATEGORIES.map((cat) => {
         const tools = byCategory(cat.id);

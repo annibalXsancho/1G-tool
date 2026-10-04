@@ -70,3 +70,14 @@ export type SuiviFile = {
   seuils: { R2_min: number; CVRMSE_max_pct: number; NMBE_max_pct: number; t_min: number; facteurIncertitude: number; pointsMin: Record<'mois' | 'semaine' | 'jour' | 'brut', number> };
   student: { dof: number[]; '80': number[]; '90': number[]; '95': number[]; infini: { '80': number; '90': number; '95': number } };
 };
+
+export type SingularityKind = 'fixe' | 'coude-arrondi' | 'coude-vif' | 'elargissement' | 'retrecissement' | 'libre';
+export type SingularityDef = { id: string; categorie: string; label: string; kind: SingularityKind; K?: number; Kmin?: number; Kmax?: number };
+
+export type HydrauliqueFile = {
+  meta: DataMeta;
+  eau: { T_C: number[]; rho_kg_m3: number[]; mu_mPa_s: number[] };
+  rugosites: Record<string, { label: string; eps_mm: number }>;
+  criteres: { vitesseMin_m_s: number; vitesseMax_m_s: number; vitesseMaxAspiration_m_s: number; perteLineiqueMax_Pa_m: number; partSinguliereAlerte: number };
+  singularites: SingularityDef[];
+};

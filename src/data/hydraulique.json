@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "titre": "Hydraulique : propriétés de l'eau, rugosités de conduites, coefficients de pertes singulières, repères de dimensionnement",
+    "source": "Propriétés de l'eau liquide à pression atmosphérique (masse volumique, viscosité dynamique) : tables usuelles (ex. Incropera & DeWitt, annexe A ; CRC Handbook), valeurs arrondies. Rugosités absolues : valeurs usuelles des diagrammes de Moody (acier commercial 0,045 mm, fonte 0,26 mm, tube étiré 0,0015 mm…). Pertes singulières : formule de Weisbach pour les coudes (arrondis et vifs), théorème de Borda-Carnot pour l'élargissement brusque, formules de Crane TP-410 pour les raccords coniques, valeurs typiques d'Idel'chik et de Crane TP-410 pour les autres organes. Cas de référence de validation : feuille HYDRAULIQUE.xlsx du cours (conduite forcée, formule de Swamee-Jain). TODO: source à vérifier (relire les tables d'origine : les coefficients des vannes, clapets, tés et crépines sont des ordres de grandeur avec une plage, pas des valeurs garanties ; les repères de vitesse et de perte linéique sont des usages courants à confirmer).",
+    "date": "2026-10-04",
+    "note": "Chaque singularité porte un coefficient par défaut et, quand il existe, une plage [Kmin, Kmax] : le résultat doit être lu avec cette incertitude. Les coefficients sont rapportés à la vitesse dans la conduite du tronçon, sauf les raccords de section (rapportés à la vitesse dans la petite section). Pour corriger une valeur, éditer ce fichier."
+  },
+  "eau": {
+    "T_C": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+    "rho_kg_m3": [999.8, 999.7, 998.2, 995.7, 992.2, 988.0, 983.2, 977.8, 971.8, 965.3, 958.4],
+    "mu_mPa_s": [1.792, 1.307, 1.002, 0.797, 0.653, 0.547, 0.467, 0.404, 0.355, 0.315, 0.282]
+  },
+  "rugosites": {
+    "acier": { "label": "Acier neuf (commercial)", "eps_mm": 0.045 },
+    "galva": { "label": "Acier galvanisé", "eps_mm": 0.15 },
+    "acier-ancien": { "label": "Acier ancien, légèrement entartré", "eps_mm": 0.5 },
+    "inox": { "label": "Inox", "eps_mm": 0.015 },
+    "cuivre": { "label": "Cuivre, laiton (tube étiré)", "eps_mm": 0.0015 },
+    "plastique": { "label": "PVC, PE, PP (lisses)", "eps_mm": 0.0015 },
+    "fonte": { "label": "Fonte neuve", "eps_mm": 0.26 },
+    "beton": { "label": "Béton lisse", "eps_mm": 0.3 }
+  },
+  "criteres": {
+    "vitesseMin_m_s": 0.3,
+    "vitesseMax_m_s": 2,
+    "vitesseMaxAspiration_m_s": 1.5,
+    "perteLineiqueMax_Pa_m": 150,
+    "partSinguliereAlerte": 0.5
+  },
+  "singularites": [
+    { "id": "entree-vive", "categorie": "Entrées et sorties", "label": "Entrée de réservoir, arête vive", "kind": "fixe", "K": 0.5, "Kmin": 0.45, "Kmax": 0.5 },
+    { "id": "entree-arrondie", "categorie": "Entrées et sorties", "label": "Entrée de réservoir, bords arrondis", "kind": "fixe", "K": 0.1, "Kmin": 0.04, "Kmax": 0.2 },
+    { "id": "entree-rentrante", "categorie": "Entrées et sorties", "label": "Entrée rentrante (tube qui pénètre dans le réservoir)", "kind": "fixe", "K": 0.8, "Kmin": 0.78, "Kmax": 1 },
+    { "id": "sortie", "categorie": "Entrées et sorties", "label": "Sortie vers réservoir ou jet libre (énergie cinétique perdue)", "kind": "fixe", "K": 1, "Kmin": 1, "Kmax": 1 },
+    { "id": "coude-rayon", "categorie": "Coudes", "label": "Coude arrondi (angle et R/D réglables)", "kind": "coude-arrondi" },
+    { "id": "coude-vif", "categorie": "Coudes", "label": "Coude vif, à angle (équerre)", "kind": "coude-vif" },
+    { "id": "te-direct", "categorie": "Tés", "label": "Té, passage direct", "kind": "fixe", "K": 0.3, "Kmin": 0.2, "Kmax": 0.5 },
+    { "id": "te-derivation", "categorie": "Tés", "label": "Té, dérivation (l'écoulement tourne à 90°)", "kind": "fixe", "K": 1, "Kmin": 0.9, "Kmax": 1.3 },
+    { "id": "elargissement", "categorie": "Changements de section", "label": "Élargissement (brusque ou conique)", "kind": "elargissement" },
+    { "id": "retrecissement", "categorie": "Changements de section", "label": "Rétrécissement (brusque ou conique)", "kind": "retrecissement" },
+    { "id": "vanne-sphere", "categorie": "Vannes (ouvertes)", "label": "Robinet à tournant sphérique", "kind": "fixe", "K": 0.1, "Kmin": 0.05, "Kmax": 0.15 },
+    { "id": "vanne-opercule", "categorie": "Vannes (ouvertes)", "label": "Vanne à opercule (à passage intégral)", "kind": "fixe", "K": 0.2, "Kmin": 0.1, "Kmax": 0.3 },
+    { "id": "vanne-papillon", "categorie": "Vannes (ouvertes)", "label": "Vanne papillon", "kind": "fixe", "K": 0.6, "Kmin": 0.3, "Kmax": 1.2 },
+    { "id": "vanne-soupape", "categorie": "Vannes (ouvertes)", "label": "Robinet à soupape (globe)", "kind": "fixe", "K": 8, "Kmin": 6, "Kmax": 10 },
+    { "id": "clapet-battant", "categorie": "Clapets et filtres", "label": "Clapet anti-retour à battant", "kind": "fixe", "K": 2, "Kmin": 1, "Kmax": 3 },
+    { "id": "clapet-ressort", "categorie": "Clapets et filtres", "label": "Clapet anti-retour à ressort ou à disque", "kind": "fixe", "K": 4, "Kmin": 3, "Kmax": 8 },
+    { "id": "filtre-y", "categorie": "Clapets et filtres", "label": "Filtre en Y, propre", "kind": "fixe", "K": 2.5, "Kmin": 1.5, "Kmax": 4 },
+    { "id": "libre", "categorie": "Autre", "label": "Coefficient K saisi", "kind": "libre" }
+  ]
+}

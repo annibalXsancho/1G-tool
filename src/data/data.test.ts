@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CombustiblesFile, EcsFile, ElectriqueFile, FluidesFile, SuiviFile } from './schema';
+import type { CombustiblesFile, EcsFile, ElectriqueFile, FluidesFile, HydrauliqueFile, SuiviFile } from './schema';
 
 const files = import.meta.glob('./*.json', { eager: true, import: 'default' }) as Record<string, { meta?: unknown }>;
 
@@ -99,5 +99,18 @@ describe('fichiers JSON de src/data', () => {
     expect(f.dju.poidsDebut + f.dju.poidsPente).toBeCloseTo(0.5, 12);
     expect(f.seuils.R2_min).toBeGreaterThan(0.5); expect(f.seuils.R2_min).toBeLessThan(1);
     expect(f.seuils.facteurIncertitude).toBeGreaterThanOrEqual(1);
+  });
+  it('hydraulique.json : tables croissantes, plages cohérentes, identifiants uniques', async () => {
+    const f = (await import('./hydraulique.json')).default as unknown as HydrauliqueFile;
+    const n = f.eau.T_C.length;
+    expect(f.eau.rho_kg_m3).toHaveLength(n); expect(f.eau.mu_mPa_s).toHaveLength(n);
+    f.eau.T_C.forEach((T, i) => { if (i > 0) { expect(T).toBeGreaterThan(f.eau.T_C[i - 1]); expect(f.eau.rho_kg_m3[i]).toBeLessThan(f.eau.rho_kg_m3[i - 1]); expect(f.eau.mu_mPa_s[i]).toBeLessThan(f.eau.mu_mPa_s[i - 1]); } });
+    for (const [id, r] of Object.entries(f.rugosites)) { expect(r.eps_mm, id).toBeGreaterThan(0); expect(r.eps_mm, id).toBeLessThan(5); }
+    const ids = f.singularites.map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const s of f.singularites) {
+      if (s.kind === 'fixe') { expect(s.K, s.id).toBeGreaterThan(0); expect(s.Kmin ?? s.K!, s.id).toBeLessThanOrEqual(s.K!); expect(s.Kmax ?? s.K!, s.id).toBeGreaterThanOrEqual(s.K!); }
+    }
+    expect(f.criteres.vitesseMin_m_s).toBeLessThan(f.criteres.vitesseMax_m_s);
   });
 });

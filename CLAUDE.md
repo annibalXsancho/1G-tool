@@ -37,6 +37,10 @@ Node est installé dans `~/.local/node` : préfixer par `export PATH=$HOME/.loca
   puissance de détection par Monte-Carlo, durée de suivi nécessaire, cartes de contrôle Shewhart + CUSUM), `exemple.ts`.
   Réutilise `src/suivi/` pour le modèle. UI : `src/ui/monitoring/`, route `/monitoring/`. Seul appel réseau, explicite et
   déclenché par l'utilisateur : `src/lib/meteo.ts` (open-meteo, commune et dates uniquement). `src/ui/common.tsx` : Section, Stat, CheckList, Tabs.
+- `src/hydraulique/` : pertes de charge (pur) : `friction.ts` (Reynolds, Colebrook-White itératif, Swamee-Jain), `fluid.ts` (eau 0-100 °C,
+  fluide saisi), `singularities.ts` (Weisbach, Borda-Carnot, Crane, catalogue), `network.ts` (réseau en série, cumul, contrôles, note),
+  `presets.ts` (dont la conduite forcée du cours, cas de validation). Données : `src/data/hydraulique.json`. UI : `src/ui/hydraulique/`
+  (schéma animé `PipeSvg`, `BendWidget` interactif), route `/pertes-de-charge/`.
 - `src/lib/undo-store.ts` : stockage local + annulation, utilisé par le modèle de site et les plans de comptage.
 - `src/data/` : JSON datés et sourcés (`meta.source`, `meta.date`), typés dans `schema.ts`, vérifiés par `data.test.ts`.
 - `src/ui/`, `src/app/` : rendu générique. Aucune connaissance d'un calculateur particulier.

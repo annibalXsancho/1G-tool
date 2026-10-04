@@ -51,7 +51,7 @@ aucun lien entre le modèle de site, les plans de comptage et le monitoring ; le
 - **Critère d'acceptation** : une PR rouge bloque la fusion ; recharger `/monitoring/` retrouve le relevé.
 
 
-### Sprint 1 · Pertes de charge (hydraulique, 1ʳᵉ demande) · premier module
+### Sprint 1 · Pertes de charge (hydraulique, 1ʳᵉ demande) · premier module · LIVRÉ (`/pertes-de-charge/`)
 - Perte de charge linéique (Darcy-Weisbach, Colebrook-White itératif, Swamee-Jain en contrôle), pertes singulières par coefficients ζ tabulés dans `src/data/`.
 - Calculateur de conduite (débit, diamètre, rugosité, fluide depuis `fluides.json`), réseau en série avec cumul par tronçon, vitesse limite conseillée.
 - Graphique de la perte cumulée le long du réseau (Plotly) et note de calcul.
