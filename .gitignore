@@ -4,3 +4,6 @@ out
 next-env.d.ts
 *.tsbuildinfo
 .DS_Store
+
+# Supports de cours personnels : ne pas publier
+1G etudes/

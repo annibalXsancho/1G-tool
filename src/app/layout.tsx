@@ -11,8 +11,8 @@ import SwRegister from '@/ui/SwRegister';
 export const metadata: Metadata = {
   title: { default: 'Énergie · Calculs', template: '%s · Énergie · Calculs' },
   description: 'Calculs d’ingénierie énergétique avec formules, hypothèses et sources.',
-  manifest: '/manifest.webmanifest',
-  icons: { icon: '/icons/icon-192.png', apple: '/icons/icon-192.png' },
+  manifest: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/manifest.webmanifest`,
+  icons: { icon: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/icons/icon-192.png`, apple: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/icons/icon-192.png` },
 };
 export const viewport: Viewport = { themeColor: '#0f6b5c' };
 

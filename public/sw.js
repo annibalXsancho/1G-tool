@@ -22,7 +22,7 @@ self.addEventListener('fetch', (e) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(req, copy));
         return res;
-      }).catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || caches.match('/'))),
+      }).catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || caches.match(self.registration.scope))),
     );
     return;
   }

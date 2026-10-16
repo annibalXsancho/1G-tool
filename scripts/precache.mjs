@@ -13,10 +13,12 @@ const files = [];
   }
 })(OUT);
 
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 const urls = files
   .map((f) => '/' + relative(OUT, f).split('\\').join('/'))
   .filter((u) => u !== '/sw.js' && !u.endsWith('.map') && !/\/(404|_not-found)\//.test(u))
   .map((u) => (u.endsWith('/index.html') ? u.slice(0, -'index.html'.length) : u))
+  .map((u) => BASE + u)
   .sort();
 
 const version = createHash('sha1').update(urls.join('\n')).digest('hex').slice(0, 10);
